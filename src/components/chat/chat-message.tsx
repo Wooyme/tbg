@@ -3,7 +3,7 @@ import { User, Bot, Pencil, Trash2, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MessageDisplay } from './chat-types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { SystemPromptModal } from './system-prompt-modal';
+import { ChatConfigModifyModal } from './chat-config-modify-modal';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { Textarea } from '../ui/textarea';
@@ -60,11 +60,11 @@ export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: Ch
   return (
     <div className={cn('flex items-start gap-3 group', !isAi && 'flex-row-reverse')}>
       {isAi ? (
-        <SystemPromptModal>
+        <ChatConfigModifyModal>
             <button className="rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                 <AiAvatar />
             </button>
-        </SystemPromptModal>
+        </ChatConfigModifyModal>
       ) : (
         <Avatar className="h-8 w-8 border-2 border-primary/50 shrink-0">
             <AvatarFallback className="bg-secondary text-secondary-foreground">
