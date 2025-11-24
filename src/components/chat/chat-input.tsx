@@ -84,6 +84,12 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
                 <DropdownMenuItem onSelect={() => handleCommandSelect('/background_config')}>
                     /background_config
                 </DropdownMenuItem>
+                 <DropdownMenuItem onSelect={() => handleCommandSelect('/threads')}>
+                    /threads
+                </DropdownMenuItem>
+                 <DropdownMenuItem onSelect={() => handleCommandSelect('/end')}>
+                    /end
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
       </div>

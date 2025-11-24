@@ -20,7 +20,7 @@ export interface GameSavesContextType {
   setMessages: React.Dispatch<React.SetStateAction<MessageDisplay[]>>;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  activeGame: string | null;
+  activeGame: GameSave | null;
   saveGame: (name: string) => void;
   loadGame: (name: string) => void;
   deleteGame: (name: string) => void;
@@ -40,6 +40,9 @@ export interface GameSavesContextType {
 
   editMessage: (id: string, content: string) => void;
   deleteMessage: (id: string) => void;
+
+  updateThreadSummary: (threadId: string, title: string, summary: string) => void;
+  createNewThread: () => void;
 }
 
 export const GameSavesContext = createContext<GameSavesContextType | undefined>(

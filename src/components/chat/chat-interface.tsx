@@ -7,6 +7,7 @@ import { ChatInput } from './chat-input';
 import { getAiInitialResponse, getAiContinuation } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
 import { useGameSaves } from '@/hooks/use-game-saves';
+import { summarizeAdventureLog } from '@/ai/flows/summarize-adventure-log';
 
 const welcomeMessage: Omit<MessageDisplay, 'timestamp' | 'id'> = {
   author: 'ai' as const,
@@ -26,6 +27,16 @@ const getInitialMessage = (): MessageDisplay => ({
   }),
 });
 
+function formatMessageHistory(messages: MessageRaw[]): string {
+  return messages
+    .map(m => {
+      const author = m.author === 'user' ? 'Player' : 'GameMaster';
+      const content = m.content;
+      return `${author}: ${content}`;
+    })
+    .join('\n');
+}
+
 
 export function ChatInterface() {
   const { 
@@ -43,11 +54,13 @@ export function ChatInterface() {
     gameOpeningSettings,
     setGameOpeningSettings,
     systemPrompts,
+    updateThreadSummary,
+    createNewThread,
   } = useGameSaves();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (activeGame === 'new' && messages.length === 0) {
+    if (activeGame?.name === 'new' && messages.length === 0) {
         setMessages([getInitialMessage()]);
     }
   }, [activeGame, setMessages, messages.length]);
@@ -106,6 +119,34 @@ export function ChatInterface() {
     } else if (command.toLowerCase() === '/background_config') {
         setBackgroundSettings({ description: restOfInput });
         addSystemMessage(`Background settings updated: ${restOfInput}`);
+    } else if (command.toLowerCase() === '/threads') {
+        if (!activeGame) return;
+        const threadList = activeGame.storyThreads.map(t => 
+            `  - ${t.title} (${t.id === activeGame.activeStoryThreadId ? 'active' : 'inactive'})\n    *${t.summary}*`
+        ).join('\n');
+        addSystemMessage(`**Available Story Threads:**\n${threadList}`);
+    } else if (command.toLowerCase() === '/end') {
+        if (!activeGame || messages.length === 0) {
+            addSystemMessage("There is no active story to end.");
+            return;
+        }
+        setIsLoading(true);
+        addSystemMessage("Ending current story thread and generating summary...");
+
+        const adventureLog = formatMessageHistory(messages);
+        
+        try {
+            const { title, summary } = await summarizeAdventureLog({ adventureLog });
+            updateThreadSummary(activeGame.activeStoryThreadId, title, summary);
+            addSystemMessage(`**Story Ended:** "${title}"\n*${summary}*\n\nStarting a new story branch. Use /start or just begin writing.`);
+            createNewThread();
+            setMessages([]); // Clear messages for the new thread
+        } catch (error) {
+            console.error('Error summarizing adventure:', error);
+            addSystemMessage("There was an error summarizing the story. The story was not ended.");
+        } finally {
+            setIsLoading(false);
+        }
     } else {
       // Not a valid command, treat as regular message
       await sendRegularMessage(input);

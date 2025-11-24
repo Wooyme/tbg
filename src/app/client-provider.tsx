@@ -26,7 +26,7 @@ const SAVE_VERSION = '1.1'; // Bump version for new data structure
 
 const DEFAULT_SYSTEM_PROMPTS: SystemPrompts = {
     mainPrompt: "This is a text adventure game. Continue the story based on the last player action. Be descriptive and engaging. End your response by asking the player what they want to do next.",
-    summarizationPrompt: "Summarize the following adventure log concisely."
+    summarizationPrompt: "Summarize the following adventure log concisely, creating a short title for it as well."
 }
 
 const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
@@ -92,16 +92,17 @@ const getSaveFromStorage = (name: string): GameSave | null => {
     
     // Migration for old save format
     if (!save.storyThreads) {
+      const newThreadId = `thread-${Date.now()}`;
       const migratedSave: GameSave = {
         ...createNewGameSave(save.name),
         ...save,
         storyThreads: [{
-          id: `thread-${Date.now()}`,
+          id: newThreadId,
           title: 'Imported Story',
           summary: 'An old adventure continued.',
           messages: save.messages || [],
         }],
-        activeStoryThreadId: `thread-${Date.now()}`,
+        activeStoryThreadId: newThreadId,
       };
       delete (migratedSave as any).messages; // clean up old property
       setSaveToStorage(migratedSave);
@@ -219,17 +220,17 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
   }, [toast]);
 
+  const newGame = useCallback(() => {
+    setActiveGame(createNewGameSave('new'));
+  }, []);
+
   const deleteGame = useCallback((name: string) => {
     deleteSaveFromStorage(name);
     setSaves(prev => prev.filter(s => s.name !== name));
     if (activeGame?.name === name) {
         newGame(); // If deleting active game, start a new one
     }
-  }, [activeGame?.name]); // removed newGame from deps
-
-  const newGame = useCallback(() => {
-    setActiveGame(createNewGameSave('new'));
-  }, []);
+  }, [activeGame?.name, newGame]);
 
   const editMessage = useCallback((id: string, newContent: string) => {
     setMessages(prev =>
@@ -271,6 +272,36 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateThreadSummary = (threadId: string, title: string, summary: string) => {
+    setActiveGame(prev => {
+        if (!prev) return null;
+        const newStoryThreads = prev.storyThreads.map(thread => {
+            if (thread.id === threadId) {
+                return { ...thread, title, summary };
+            }
+            return thread;
+        });
+        return { ...prev, storyThreads: newStoryThreads };
+    });
+  };
+
+  const createNewThread = () => {
+    setActiveGame(prev => {
+        if (!prev) return null;
+        const newThread: StoryThread = {
+            id: `thread-${Date.now()}`,
+            title: 'New Story Branch',
+            summary: 'The adventure continues...',
+            messages: [],
+        };
+        return {
+            ...prev,
+            storyThreads: [...prev.storyThreads, newThread],
+            activeStoryThreadId: newThread.id,
+        };
+    });
+  };
+
 
   const value: GameSavesContextType = {
     saves,
@@ -278,7 +309,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setMessages,
     isLoading,
     setIsLoading,
-    activeGame: activeGame?.name || null,
+    activeGame: activeGame,
     saveGame,
     loadGame,
     deleteGame,
@@ -293,6 +324,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setSystemPrompts,
     editMessage,
     deleteMessage,
+    updateThreadSummary,
+    createNewThread,
   };
 
   return (
