@@ -73,7 +73,7 @@ const deleteSaveFromStorage = (name: string) => {
 
 // --- React Context and Provider ---
 
-interface GameSavesContextType {
+export interface GameSavesContextType {
   saves: GameSave[];
   messages: MessageDisplay[];
   setMessages: React.Dispatch<React.SetStateAction<MessageDisplay[]>>;
@@ -86,112 +86,9 @@ interface GameSavesContextType {
   newGame: () => void;
 }
 
-const GameSavesContext = createContext<GameSavesContextType | undefined>(
+export const GameSavesContext = createContext<GameSavesContextType | undefined>(
   undefined
 );
-
-export const GameSavesProvider = ({ children }: { children: ReactNode }) => {
-  const [messages, setMessages] = useState<MessageDisplay[]>([]);
-  const [saves, setSaves] = useState<GameSave[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeGame, setActiveGame] = useState<string | null>('new');
-  const { toast } = useToast();
-
-  useEffect(() => {
-    refreshSaves();
-  }, []);
-
-  const refreshSaves = () => {
-    try {
-      const index = getSaveIndex();
-      const loadedSaves = index.map(name => getSaveFromStorage(name)).filter(Boolean) as GameSave[];
-      loadedSaves.sort((a, b) => new Date(b.lastSaved).getTime() - new Date(a.lastSaved).getTime());
-      setSaves(loadedSaves);
-    } catch (error) {
-      console.error("Failed to refresh saves from localStorage", error);
-      toast({
-        variant: "destructive",
-        title: "Error loading saves",
-        description: "Could not retrieve save files from your browser's storage."
-      })
-    }
-  };
-
-  const saveGame = useCallback((name: string) => {
-    const rawMessages: MessageRaw[] = messages.map(m => ({
-        id: m.id,
-        author: m.author,
-        timestamp: m.timestamp,
-        content: typeof m.content === 'string' ? m.content : '[system message]',
-    }));
-
-    const newSave: GameSave = {
-      version: SAVE_VERSION,
-      name,
-      lastSaved: new Date().toISOString(),
-      messages: rawMessages,
-      // Default empty values for other settings
-      playerSettings: { name: "Player" },
-      backgroundSettings: { genre: "", setting: "", plotHook: "" },
-      gameOpeningSettings: { openingCrawl: "" },
-      systemPrompts: { mainPrompt: "" },
-      ragConfig: { enabled: false },
-    };
-
-    setSaveToStorage(newSave);
-    setActiveGame(name);
-    refreshSaves();
-  }, [messages]);
-
-  const loadGame = useCallback((name: string) => {
-    const loadedSave = getSaveFromStorage(name);
-    if (loadedSave) {
-      const displayMessages: MessageDisplay[] = loadedSave.messages.map(m => ({
-          ...m,
-          // For now, we assume all content is string. 
-          // A more robust system might parse different content types.
-          content: m.content, 
-      }));
-      setMessages(displayMessages);
-      setActiveGame(name);
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Load Failed",
-            description: `Could not find or parse the save file named "${name}".`
-        })
-    }
-  }, [toast]);
-
-  const deleteGame = useCallback((name: string) => {
-    deleteSaveFromStorage(name);
-    refreshSaves();
-  }, []);
-
-  const newGame = useCallback(() => {
-    setActiveGame('new');
-    setMessages([]);
-  }, []);
-
-  const value = {
-    saves,
-    messages,
-    setMessages,
-    isLoading,
-    setIsLoading,
-    activeGame,
-    saveGame,
-    loadGame,
-    deleteGame,
-    newGame,
-  };
-
-  return (
-    <GameSavesContext.Provider value={value}>
-      {children}
-    </GameSavesContext.Provider>
-  );
-};
 
 export const useGameSaves = () => {
   const context = useContext(GameSavesContext);
@@ -200,3 +97,6 @@ export const useGameSaves = () => {
   }
   return context;
 };
+
+// The provider component is defined and used in src/app/layout.tsx
+// to avoid including JSX in a .ts file.
