@@ -14,14 +14,15 @@ import {
   type SystemPrompts,
   type PlayerSettings,
   type BackgroundSettings,
-  type GameOpeningSettings
+  type GameOpeningSettings,
+  type StoryThread,
 } from '@/components/chat/chat-types';
 import { GameSavesContext, GameSavesContextType } from '@/hooks/use-game-saves';
 import { useToast } from '@/hooks/use-toast';
 
 const SAVE_GAME_KEY_PREFIX = 'text-adventure-save-';
 const SAVE_INDEX_KEY = 'text-adventure-save-index';
-const SAVE_VERSION = '1.0';
+const SAVE_VERSION = '1.1'; // Bump version for new data structure
 
 const DEFAULT_SYSTEM_PROMPTS: SystemPrompts = {
     mainPrompt: "This is a text adventure game. Continue the story based on the last player action. Be descriptive and engaging. End your response by asking the player what they want to do next.",
@@ -39,6 +40,27 @@ const DEFAULT_BACKGROUND_SETTINGS: BackgroundSettings = {
 
 const DEFAULT_GAME_OPENING_SETTINGS: GameOpeningSettings = {
     openingCrawl: '',
+};
+
+const createNewGameSave = (name: string): GameSave => {
+  const initialThread: StoryThread = {
+    id: `thread-${Date.now()}`,
+    title: 'Main Story',
+    summary: 'The adventure begins...',
+    messages: [],
+  };
+  return {
+    version: SAVE_VERSION,
+    name,
+    lastSaved: new Date().toISOString(),
+    playerSettings: DEFAULT_PLAYER_SETTINGS,
+    backgroundSettings: DEFAULT_BACKGROUND_SETTINGS,
+    gameOpeningSettings: DEFAULT_GAME_OPENING_SETTINGS,
+    systemPrompts: DEFAULT_SYSTEM_PROMPTS,
+    ragConfig: { enabled: false },
+    storyThreads: [initialThread],
+    activeStoryThreadId: initialThread.id,
+  };
 };
 
 
@@ -65,7 +87,28 @@ const setSaveIndex = (index: string[]) => {
 const getSaveFromStorage = (name: string): GameSave | null => {
   try {
     const saveJson = localStorage.getItem(`${SAVE_GAME_KEY_PREFIX}${name}`);
-    return saveJson ? JSON.parse(saveJson) : null;
+    if (!saveJson) return null;
+    const save = JSON.parse(saveJson);
+    
+    // Migration for old save format
+    if (!save.storyThreads) {
+      const migratedSave: GameSave = {
+        ...createNewGameSave(save.name),
+        ...save,
+        storyThreads: [{
+          id: `thread-${Date.now()}`,
+          title: 'Imported Story',
+          summary: 'An old adventure continued.',
+          messages: save.messages || [],
+        }],
+        activeStoryThreadId: `thread-${Date.now()}`,
+      };
+      delete migratedSave.messages;
+      setSaveToStorage(migratedSave);
+      return migratedSave;
+    }
+    
+    return save;
   } catch (error) {
     console.error(`Error reading save "${name}" from localStorage:`, error);
     return null;
@@ -98,15 +141,31 @@ const deleteSaveFromStorage = (name: string) => {
 export function ClientProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [saves, setSaves] = useState<GameSave[]>([]);
-  const [messages, setMessages] = useState<MessageDisplay[]>([]);
+  const [activeGame, setActiveGame] = useState<GameSave | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeGame, setActiveGame] = useState<string | null>(null);
-
-  // New states for settings
-  const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(DEFAULT_PLAYER_SETTINGS);
-  const [backgroundSettings, setBackgroundSettings] = useState<BackgroundSettings>(DEFAULT_BACKGROUND_SETTINGS);
-  const [gameOpeningSettings, setGameOpeningSettings] = useState<GameOpeningSettings>(DEFAULT_GAME_OPENING_SETTINGS);
-  const [systemPrompts, setSystemPrompts] = useState<SystemPrompts>(DEFAULT_SYSTEM_PROMPTS);
+  
+  // Derived state from activeGame
+  const messages = activeGame?.storyThreads.find(t => t.id === activeGame.activeStoryThreadId)?.messages.map(m => ({...m, content: m.content})) || [];
+  
+  const setMessages = (updater: React.SetStateAction<MessageDisplay[]>) => {
+    setActiveGame(prev => {
+        if (!prev) return null;
+        const currentMessages = prev.storyThreads.find(t => t.id === prev.activeStoryThreadId)?.messages || [];
+        const newRawMessages = typeof updater === 'function' ? updater(currentMessages.map(m => ({...m, content: m.content}))) : updater;
+        
+        const newStoryThreads = prev.storyThreads.map(thread => {
+            if (thread.id === prev.activeStoryThreadId) {
+                return {
+                    ...thread,
+                    messages: newRawMessages.map(m => ({...m, content: typeof m.content === 'string' ? m.content : '[complex message]'})),
+                };
+            }
+            return thread;
+        });
+        return { ...prev, storyThreads: newStoryThreads };
+    });
+  };
+  
 
   useEffect(() => {
     // Load all save summaries on initial mount
@@ -115,11 +174,16 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       .map(name => getSaveFromStorage(name))
       .filter((s): s is GameSave => s !== null);
     setSaves(allSaves);
-    setActiveGame('new');
+    
+    // Start with a new, unsaved game state
+    setActiveGame(createNewGameSave('new'));
   }, []);
 
   const saveGame = useCallback((name: string) => {
-    if (messages.length === 0) {
+    if (!activeGame) return;
+
+    const activeThread = activeGame.storyThreads.find(t => t.id === activeGame.activeStoryThreadId);
+    if (!activeThread || activeThread.messages.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Cannot Save Empty Game',
@@ -128,25 +192,14 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Convert display messages to raw messages for serialization
-    const rawMessages: MessageRaw[] = messages.map(m => ({
-      ...m,
-      content: typeof m.content === 'string' ? m.content : '[complex message]',
-    }));
-
     const newSave: GameSave = {
-      version: SAVE_VERSION,
+      ...activeGame,
       name,
       lastSaved: new Date().toISOString(),
-      messages: rawMessages,
-      playerSettings,
-      backgroundSettings,
-      gameOpeningSettings,
-      systemPrompts,
-      ragConfig: { enabled: false },
     };
 
     setSaveToStorage(newSave);
+    setActiveGame(newSave); // Update active game to reflect new name
     setSaves(prev => {
       const existing = prev.find(s => s.name === name);
       if (existing) {
@@ -154,22 +207,12 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, newSave];
     });
-    setActiveGame(name);
-  }, [messages, playerSettings, backgroundSettings, gameOpeningSettings, systemPrompts, toast]);
+  }, [activeGame, toast]);
 
   const loadGame = useCallback((name: string) => {
     const savedGame = getSaveFromStorage(name);
     if (savedGame) {
-      const displayMessages: MessageDisplay[] = savedGame.messages.map(m => ({
-        ...m,
-        content: m.content,
-      }));
-      setMessages(displayMessages);
-      setSystemPrompts(savedGame.systemPrompts || DEFAULT_SYSTEM_PROMPTS);
-      setPlayerSettings(savedGame.playerSettings || DEFAULT_PLAYER_SETTINGS);
-      setBackgroundSettings(savedGame.backgroundSettings || DEFAULT_BACKGROUND_SETTINGS);
-      setGameOpeningSettings(savedGame.gameOpeningSettings || DEFAULT_GAME_OPENING_SETTINGS);
-      setActiveGame(name);
+      setActiveGame(savedGame);
     } else {
       toast({
         variant: 'destructive',
@@ -182,15 +225,13 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const deleteGame = useCallback((name: string) => {
     deleteSaveFromStorage(name);
     setSaves(prev => prev.filter(s => s.name !== name));
-  }, []);
+    if (activeGame?.name === name) {
+        newGame(); // If deleting active game, start a new one
+    }
+  }, [activeGame]); // removed newGame from deps
 
   const newGame = useCallback(() => {
-    setMessages([]); // Will be populated with welcome message by ChatInterface
-    setSystemPrompts(DEFAULT_SYSTEM_PROMPTS);
-    setPlayerSettings(DEFAULT_PLAYER_SETTINGS);
-    setBackgroundSettings(DEFAULT_BACKGROUND_SETTINGS);
-    setGameOpeningSettings(DEFAULT_GAME_OPENING_SETTINGS);
-    setActiveGame('new');
+    setActiveGame(createNewGameSave('new'));
   }, []);
 
   const editMessage = useCallback((id: string, newContent: string) => {
@@ -203,25 +244,55 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setMessages(prev => prev.filter(m => m.id !== id));
   }, []);
 
+  // Functions to update settings directly on the active game state
+  const setPlayerSettings = (updater: React.SetStateAction<PlayerSettings>) => {
+    setActiveGame(prev => {
+      if (!prev) return null;
+      const newSettings = typeof updater === 'function' ? updater(prev.playerSettings) : updater;
+      return {...prev, playerSettings: newSettings};
+    });
+  };
+  const setBackgroundSettings = (updater: React.SetStateAction<BackgroundSettings>) => {
+     setActiveGame(prev => {
+      if (!prev) return null;
+      const newSettings = typeof updater === 'function' ? updater(prev.backgroundSettings) : updater;
+      return {...prev, backgroundSettings: newSettings};
+    });
+  };
+  const setGameOpeningSettings = (updater: React.SetStateAction<GameOpeningSettings>) => {
+     setActiveGame(prev => {
+      if (!prev) return null;
+      const newSettings = typeof updater === 'function' ? updater(prev.gameOpeningSettings) : updater;
+      return {...prev, gameOpeningSettings: newSettings};
+    });
+  };
+  const setSystemPrompts = (updater: React.SetStateAction<SystemPrompts>) => {
+     setActiveGame(prev => {
+      if (!prev) return null;
+      const newSettings = typeof updater === 'function' ? updater(prev.systemPrompts) : updater;
+      return {...prev, systemPrompts: newSettings};
+    });
+  };
+
 
   const value: GameSavesContextType = {
     saves,
-    messages,
+    messages: messages.map(m => ({...m, content: m.content})), // Ensure it's MessageDisplay[]
     setMessages,
     isLoading,
     setIsLoading,
-    activeGame,
+    activeGame: activeGame?.name || null,
     saveGame,
     loadGame,
     deleteGame,
     newGame,
-    playerSettings,
+    playerSettings: activeGame?.playerSettings || DEFAULT_PLAYER_SETTINGS,
     setPlayerSettings,
-    backgroundSettings,
+    backgroundSettings: activeGame?.backgroundSettings || DEFAULT_BACKGROUND_SETTINGS,
     setBackgroundSettings,
-    gameOpeningSettings,
+    gameOpeningSettings: activeGame?.gameOpeningSettings || DEFAULT_GAME_OPENING_SETTINGS,
     setGameOpeningSettings,
-    systemPrompts,
+    systemPrompts: activeGame?.systemPrompts || DEFAULT_SYSTEM_PROMPTS,
     setSystemPrompts,
     editMessage,
     deleteMessage,

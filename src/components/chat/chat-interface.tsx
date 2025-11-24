@@ -90,7 +90,6 @@ export function ChatInterface() {
         addSystemMessage(`Starting new adventure: ${restOfInput}`);
         
         const gameSaveForAction = {
-            messages: [], // Start with no history
             playerSettings,
             backgroundSettings,
             gameOpeningSettings: currentOpeningSettings,
@@ -150,7 +149,7 @@ export function ChatInterface() {
       }));
 
       const gameSaveForAction = {
-        messages: historyForAction,
+        activeStoryThread: { messages: historyForAction, id: 'temp', title: 'temp', summary: 'temp' },
         playerSettings,
         backgroundSettings,
         gameOpeningSettings,

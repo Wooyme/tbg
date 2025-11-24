@@ -18,6 +18,14 @@ export type MessageDisplay = {
   timestamp: string;
 };
 
+export type StoryThread = {
+  id: string;
+  title: string;
+  summary: string;
+  messages: MessageRaw[];
+};
+
+
 // --- Game Save State Types ---
 
 export type PlayerSettings = {
@@ -52,5 +60,6 @@ export type GameSave = {
   gameOpeningSettings: GameOpeningSettings;
   systemPrompts: SystemPrompts;
   ragConfig: RAGConfig;
-  messages: MessageRaw[];
+  storyThreads: StoryThread[];
+  activeStoryThreadId: string;
 };

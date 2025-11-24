@@ -1,7 +1,7 @@
 'use server';
 
 import { generateAdventureFromPrompt } from '@/ai/flows/generate-adventure-from-prompt';
-import type { MessageRaw } from '@/components/chat/chat-types';
+import type { MessageRaw, StoryThread } from '@/components/chat/chat-types';
 import { ai } from '@/ai/genkit';
 import { GameSave } from '@/components/chat/chat-types';
 
@@ -17,7 +17,7 @@ function formatMessageHistory(messages: MessageRaw[]): string {
 }
 
 export async function getAiInitialResponse(
-    gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version'>
+    gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'>
 ): Promise<string> {
     const { playerSettings, backgroundSettings, gameOpeningSettings } = gameSave;
 
@@ -37,11 +37,11 @@ export async function getAiInitialResponse(
 }
 
 export async function getAiContinuation(
-  gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version'>,
+  gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'> & { activeStoryThread: StoryThread },
   userInput: string
 ): Promise<string> {
   try {
-    const adventureLog = formatMessageHistory(gameSave.messages);
+    const adventureLog = formatMessageHistory(gameSave.activeStoryThread.messages);
 
     const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
 
