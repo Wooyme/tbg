@@ -7,6 +7,8 @@ import { ChatConfigModifyModal } from './chat-config-modify-modal';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { Textarea } from '../ui/textarea';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageProps {
   message: MessageDisplay;
@@ -81,7 +83,7 @@ export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: Ch
       >
         <div
           className={cn(
-            'p-3 rounded-lg leading-relaxed shadow-md',
+            'p-3 rounded-lg leading-relaxed shadow-md prose prose-sm prose-invert',
             isAi ? 'bg-secondary rounded-tl-none' : 'bg-primary text-primary-foreground rounded-tr-none'
           )}
         >
@@ -96,11 +98,12 @@ export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: Ch
               />
             </div>
           ) : (
-            <div className="space-y-2 text-sm break-words">
-            {message.content.split('\n').map((line, index) => (
-                <p key={index}>{line || '\u00A0'}</p>
-            ))}
-            </div>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              className="space-y-2 break-words"
+            >
+              {message.content}
+            </ReactMarkdown>
           )}
         </div>
         

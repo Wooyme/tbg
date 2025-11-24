@@ -82,3 +82,77 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add styles for markdown content */
+.prose {
+    color: hsl(var(--foreground));
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    color: hsl(var(--foreground));
+}
+
+.prose a {
+    color: hsl(var(--accent));
+}
+
+.prose strong {
+    color: hsl(var(--foreground));
+}
+
+.prose code {
+    color: hsl(var(--accent-foreground));
+    background-color: hsl(var(--accent) / 0.2);
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    border-radius: 6px;
+}
+
+.prose pre {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.prose pre code {
+  color: inherit;
+  padding: 0;
+  background-color: transparent;
+  font-size: inherit;
+}
+
+.prose blockquote {
+    border-left-color: hsl(var(--border));
+    color: hsl(var(--muted-foreground));
+}
+
+.prose ul, .prose ol {
+    padding-left: 1.5rem;
+}
+
+.prose li::marker {
+    color: hsl(var(--muted-foreground));
+}
+
+.prose table {
+    width: 100%;
+}
+
+.prose th {
+    color: hsl(var(--foreground));
+    border-bottom-color: hsl(var(--border));
+}
+
+.prose td, .prose th {
+    border-color: hsl(var(--border));
+}
+
+.prose-invert a {
+    color: hsl(var(--accent));
+}
+
+.prose-invert strong {
+    color: hsl(var(--primary-foreground));
+}
