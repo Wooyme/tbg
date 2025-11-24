@@ -167,6 +167,17 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setActiveGame('new');
   }, []);
 
+  const editMessage = useCallback((id: string, newContent: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === id ? { ...m, content: newContent } : m))
+    );
+  }, []);
+
+  const deleteMessage = useCallback((id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id));
+  }, []);
+
+
   const value: GameSavesContextType = {
     saves,
     messages,
@@ -180,6 +191,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     newGame,
     systemPrompts,
     setSystemPrompts,
+    editMessage,
+    deleteMessage,
   };
 
   return (

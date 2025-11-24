@@ -47,14 +47,16 @@ export function ChatInterface() {
     isLoading, 
     setIsLoading,
     activeGame,
+    editMessage,
+    deleteMessage
   } = useGameSaves();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (activeGame === 'new') {
+    if (activeGame === 'new' && messages.length === 0) {
         setMessages([getInitialMessage()]);
     }
-  }, [activeGame, setMessages]);
+  }, [activeGame, setMessages, messages.length]);
 
 
   const sendMessage = async (input: string) => {
@@ -103,7 +105,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <ChatList messages={messages} isLoading={isLoading} />
+      <ChatList messages={messages} isLoading={isLoading} onEditMessage={editMessage} onDeleteMessage={deleteMessage} />
       <ChatInput onSendMessage={sendMessage} isLoading={isLoading} />
     </div>
   );

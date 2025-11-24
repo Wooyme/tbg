@@ -8,9 +8,11 @@ import { ChatMessage } from './chat-message';
 interface ChatListProps {
   messages: MessageDisplay[];
   isLoading: boolean;
+  onEditMessage: (id: string, content: string) => void;
+  onDeleteMessage: (id: string) => void;
 }
 
-export function ChatList({ messages, isLoading }: ChatListProps) {
+export function ChatList({ messages, isLoading, onEditMessage, onDeleteMessage }: ChatListProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +25,12 @@ export function ChatList({ messages, isLoading }: ChatListProps) {
     <ScrollArea className="flex-1" viewportRef={viewportRef}>
         <div className="p-4 space-y-6">
             {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  onEdit={onEditMessage}
+                  onDelete={onDeleteMessage}
+                />
             ))}
             {isLoading && <ChatMessage key="loading" message={{id: 'loading', author: 'ai', content: '...', timestamp: ''}} isLoading={true} />}
         </div>

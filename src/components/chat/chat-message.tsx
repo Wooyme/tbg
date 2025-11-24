@@ -1,13 +1,18 @@
-import { User, Bot } from 'lucide-react';
+'use client';
+import { User, Bot, Pencil, Trash2, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MessageDisplay } from './chat-types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SystemPromptModal } from './system-prompt-modal';
 import { Button } from '../ui/button';
+import { useState } from 'react';
+import { Textarea } from '../ui/textarea';
 
 interface ChatMessageProps {
   message: MessageDisplay;
   isLoading?: boolean;
+  onEdit?: (id: string, content: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 function TypingIndicator() {
@@ -20,8 +25,29 @@ function TypingIndicator() {
     );
 }
 
-export function ChatMessage({ message, isLoading = false }: ChatMessageProps) {
+export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: ChatMessageProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(typeof message.content === 'string' ? message.content : '');
   const isAi = message.author === 'ai';
+  const canEdit = !isLoading && message.id !== 'init' && typeof message.content === 'string';
+
+  const handleSave = () => {
+    if (onEdit) {
+      onEdit(message.id, editedContent);
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedContent(typeof message.content === 'string' ? message.content : '');
+  };
+  
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(message.id);
+    }
+  };
 
   const AiAvatar = () => (
     <Avatar className="h-8 w-8 border-2 border-primary/50 shrink-0">
@@ -32,7 +58,7 @@ export function ChatMessage({ message, isLoading = false }: ChatMessageProps) {
   );
 
   return (
-    <div className={cn('flex items-start gap-3', !isAi && 'flex-row-reverse')}>
+    <div className={cn('flex items-start gap-3 group', !isAi && 'flex-row-reverse')}>
       {isAi ? (
         <SystemPromptModal>
             <button className="rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
@@ -59,7 +85,17 @@ export function ChatMessage({ message, isLoading = false }: ChatMessageProps) {
             isAi ? 'bg-secondary rounded-tl-none' : 'bg-primary text-primary-foreground rounded-tr-none'
           )}
         >
-          {isLoading ? <TypingIndicator /> : (
+          {isLoading ? (
+            <TypingIndicator />
+          ) : isEditing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="text-sm bg-background/50"
+              />
+            </div>
+          ) : (
             <div className="space-y-2 text-sm break-words">
             {typeof message.content === 'string' ? (
                 message.content.split('\n').map((line, index) => (
@@ -71,7 +107,32 @@ export function ChatMessage({ message, isLoading = false }: ChatMessageProps) {
             </div>
           )}
         </div>
-        {message.timestamp && <span className="text-xs text-muted-foreground px-1">{message.timestamp}</span>}
+        
+        {canEdit && (
+          <div className="flex items-center gap-1.5 pt-1">
+            {isEditing ? (
+              <>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={handleSave} aria-label="Save changes">
+                  <Save className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={handleCancel} aria-label="Cancel editing">
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setIsEditing(true)} aria-label="Edit message">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={handleDelete} aria-label="Delete message">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
+        {message.timestamp && !isEditing && <span className="text-xs text-muted-foreground px-1">{message.timestamp}</span>}
       </div>
     </div>
   );

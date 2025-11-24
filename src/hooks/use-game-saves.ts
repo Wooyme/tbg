@@ -87,6 +87,8 @@ export interface GameSavesContextType {
   newGame: () => void;
   systemPrompts: SystemPrompts;
   setSystemPrompts: React.Dispatch<React.SetStateAction<SystemPrompts>>;
+  editMessage: (id: string, content: string) => void;
+  deleteMessage: (id: string) => void;
 }
 
 export const GameSavesContext = createContext<GameSavesContextType | undefined>(
