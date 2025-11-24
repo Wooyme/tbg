@@ -11,6 +11,7 @@ import {
   type MessageDisplay,
   type MessageRaw,
   type GameSave,
+  type SystemPrompts,
 } from '@/components/chat/chat-types';
 import { GameSavesContext, GameSavesContextType } from '@/hooks/use-game-saves';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,11 @@ import { useToast } from '@/hooks/use-toast';
 const SAVE_GAME_KEY_PREFIX = 'text-adventure-save-';
 const SAVE_INDEX_KEY = 'text-adventure-save-index';
 const SAVE_VERSION = '1.0';
+
+const DEFAULT_SYSTEM_PROMPTS: SystemPrompts = {
+    mainPrompt: "This is a text adventure game. Continue the story based on the last player action. Be descriptive and engaging. End your response by asking the player what they want to do next.",
+    summarizationPrompt: "Summarize the following adventure log concisely."
+}
 
 // --- Helper Functions for localStorage ---
 
@@ -78,6 +84,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<MessageDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const [systemPrompts, setSystemPrompts] = useState<SystemPrompts>(DEFAULT_SYSTEM_PROMPTS);
 
   useEffect(() => {
     // Load all save summaries on initial mount
@@ -110,11 +117,10 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       name,
       lastSaved: new Date().toISOString(),
       messages: rawMessages,
-      // The rest of the fields will be populated when those features are built
       playerSettings: { name: 'Player' },
       backgroundSettings: { description: '' },
       gameOpeningSettings: { openingCrawl: '' },
-      systemPrompts: { mainPrompt: '' },
+      systemPrompts: systemPrompts, // Save current prompts
       ragConfig: { enabled: false },
     };
 
@@ -127,7 +133,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       return [...prev, newSave];
     });
     setActiveGame(name);
-  }, [messages, toast]);
+  }, [messages, toast, systemPrompts]);
 
   const loadGame = useCallback((name: string) => {
     const savedGame = getSaveFromStorage(name);
@@ -139,6 +145,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         content: m.content,
       }));
       setMessages(displayMessages);
+      setSystemPrompts(savedGame.systemPrompts || DEFAULT_SYSTEM_PROMPTS);
       setActiveGame(name);
     } else {
       toast({
@@ -156,6 +163,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   const newGame = useCallback(() => {
     setMessages([]); // Will be populated with welcome message by ChatInterface
+    setSystemPrompts(DEFAULT_SYSTEM_PROMPTS);
     setActiveGame('new');
   }, []);
 
@@ -170,6 +178,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     loadGame,
     deleteGame,
     newGame,
+    systemPrompts,
+    setSystemPrompts,
   };
 
   return (

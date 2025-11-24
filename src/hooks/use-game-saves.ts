@@ -11,6 +11,7 @@ import {
   type MessageDisplay,
   type MessageRaw,
   type GameSave,
+  type SystemPrompts,
 } from '@/components/chat/chat-types';
 import { useToast } from './use-toast';
 
@@ -84,6 +85,8 @@ export interface GameSavesContextType {
   loadGame: (name: string) => void;
   deleteGame: (name: string) => void;
   newGame: () => void;
+  systemPrompts: SystemPrompts;
+  setSystemPrompts: React.Dispatch<React.SetStateAction<SystemPrompts>>;
 }
 
 export const GameSavesContext = createContext<GameSavesContextType | undefined>(

@@ -2,6 +2,8 @@ import { User, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MessageDisplay } from './chat-types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SystemPromptModal } from './system-prompt-modal';
+import { Button } from '../ui/button';
 
 interface ChatMessageProps {
   message: MessageDisplay;
@@ -21,19 +23,30 @@ function TypingIndicator() {
 export function ChatMessage({ message, isLoading = false }: ChatMessageProps) {
   const isAi = message.author === 'ai';
 
+  const AiAvatar = () => (
+    <Avatar className="h-8 w-8 border-2 border-primary/50 shrink-0">
+      <AvatarFallback className="bg-primary text-primary-foreground">
+        <Bot className="h-5 w-5" />
+      </AvatarFallback>
+    </Avatar>
+  );
+
   return (
     <div className={cn('flex items-start gap-3', !isAi && 'flex-row-reverse')}>
-      <Avatar className="h-8 w-8 border-2 border-primary/50 shrink-0">
-        {isAi ? (
-            <AvatarFallback className="bg-primary text-primary-foreground">
-                <Bot className="h-5 w-5" />
-            </AvatarFallback>
-        ) : (
+      {isAi ? (
+        <SystemPromptModal>
+            <button className="rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <AiAvatar />
+            </button>
+        </SystemPromptModal>
+      ) : (
+        <Avatar className="h-8 w-8 border-2 border-primary/50 shrink-0">
             <AvatarFallback className="bg-secondary text-secondary-foreground">
                 <User className="h-5 w-5" />
             </AvatarFallback>
-        )}
-      </Avatar>
+        </Avatar>
+      )}
+
       <div
         className={cn(
           'flex flex-col max-w-[85%] sm:max-w-[80%] space-y-1',
