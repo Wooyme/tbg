@@ -17,3 +17,39 @@ export type MessageDisplay = {
   content: React.ReactNode; // Can be a string or a React component
   timestamp: string;
 };
+
+// --- Game Save State Types ---
+
+export type PlayerSettings = {
+  name: string;
+  characterClass?: string;
+};
+
+export type BackgroundSettings = {
+  genre: string;
+  setting: string;
+  plotHook: string;
+};
+
+export type GameOpeningSettings = {
+  openingCrawl: string;
+};
+
+export type SystemPrompts = {
+  mainPrompt: string;
+  summarizationPrompt?: string;
+};
+
+export type RAGConfig = {
+  enabled: boolean;
+  knowledgeBaseId?: string;
+};
+
+export type GameSave = {
+  playerSettings: PlayerSettings;
+  backgroundSettings: BackgroundSettings;
+  gameOpeningSettings: GameOpeningSettings;
+  systemPrompts: SystemPrompts;
+  ragConfig: RAGConfig;
+  messages: MessageRaw[];
+};
