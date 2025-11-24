@@ -22,13 +22,11 @@ export type MessageDisplay = {
 
 export type PlayerSettings = {
   name: string;
-  characterClass?: string;
+  description?: string;
 };
 
 export type BackgroundSettings = {
-  genre: string;
-  setting: string;
-  plotHook: string;
+  description: string;
 };
 
 export type GameOpeningSettings = {

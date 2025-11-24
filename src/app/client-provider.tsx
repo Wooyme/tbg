@@ -112,7 +112,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       messages: rawMessages,
       // The rest of the fields will be populated when those features are built
       playerSettings: { name: 'Player' },
-      backgroundSettings: { genre: '', setting: '', plotHook: '' },
+      backgroundSettings: { description: '' },
       gameOpeningSettings: { openingCrawl: '' },
       systemPrompts: { mainPrompt: '' },
       ragConfig: { enabled: false },
