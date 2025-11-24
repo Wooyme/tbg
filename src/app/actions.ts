@@ -16,9 +16,24 @@ function formatMessageHistory(messages: MessageRaw[]): string {
     .join('\n');
 }
 
-export async function getAiInitialResponse(prompt: string): Promise<string> {
-  const response = await generateAdventureFromPrompt({ prompt: `Create a text adventure game based on this prompt: ${prompt}` });
-  return response.scenario;
+export async function getAiInitialResponse(
+    gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version'>
+): Promise<string> {
+    const { playerSettings, backgroundSettings, gameOpeningSettings } = gameSave;
+
+    let prompt = `Create a text adventure game.`;
+    if (gameOpeningSettings.openingCrawl) {
+        prompt += ` The user wants this kind of story: ${gameOpeningSettings.openingCrawl}.`;
+    }
+    if (playerSettings.description) {
+        prompt += ` The player's character is: ${playerSettings.description}.`;
+    }
+    if (backgroundSettings.description) {
+        prompt += ` The story's background is: ${backgroundSettings.description}.`;
+    }
+
+    const response = await generateAdventureFromPrompt({ prompt });
+    return response.scenario;
 }
 
 export async function getAiContinuation(

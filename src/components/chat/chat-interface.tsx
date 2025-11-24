@@ -85,17 +85,29 @@ export function ChatInterface() {
             return;
         }
         setIsLoading(true);
-        setGameOpeningSettings({ openingCrawl: restOfInput });
+        const currentOpeningSettings = { openingCrawl: restOfInput };
+        setGameOpeningSettings(currentOpeningSettings);
         addSystemMessage(`Starting new adventure: ${restOfInput}`);
+        
+        const gameSaveForAction = {
+            messages: [], // Start with no history
+            playerSettings,
+            backgroundSettings,
+            gameOpeningSettings: currentOpeningSettings,
+            systemPrompts,
+            ragConfig: { enabled: false }
+        };
+
         try {
-          const aiResponseContent = await getAiInitialResponse(restOfInput);
+          const aiResponseContent = await getAiInitialResponse(gameSaveForAction);
            const aiMessage: MessageDisplay = {
             id: `ai-${Date.now()}`,
             author: 'ai',
             content: aiResponseContent,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
-          setMessages(prev => [...prev, aiMessage]);
+          // Clear initial/system messages and add the first AI response
+          setMessages([aiMessage]); 
         } catch (error) {
            console.error(error);
            addSystemMessage("There was an error starting the adventure. Please try again.");
@@ -116,7 +128,7 @@ export function ChatInterface() {
 
 
   const sendRegularMessage = async (input: string) => {
-      if (messages.length < 2 && !messages.find(m => m.id.startsWith('ai-'))) {
+      if (messages.length < 1 || messages[0].id === 'init') {
         addSystemMessage("Your adventure hasn't started yet. Use the `/start` command to begin.");
         return;
       }
