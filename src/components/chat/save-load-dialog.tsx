@@ -97,9 +97,6 @@ export function SaveLoadDialog() {
 
   return (
     <>
-      <Button onClick={handleNewGame} variant="outline">
-        <FilePlus className="mr-2" /> New Game
-      </Button>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button>
@@ -108,7 +105,12 @@ export function SaveLoadDialog() {
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px] md:max-w-lg bg-background">
           <DialogHeader>
-            <DialogTitle>Save & Load Game</DialogTitle>
+            <div className="flex justify-between items-center">
+              <DialogTitle>Save & Load Game</DialogTitle>
+              <Button onClick={handleNewGame} variant="outline" size="sm">
+                <FilePlus className="mr-2" /> New Game
+              </Button>
+            </div>
             <DialogDescription>
               Manage your saved adventures. You can save your current progress or load a previous one.
             </DialogDescription>
