@@ -10,24 +10,11 @@ import { useGameSaves } from '@/hooks/use-game-saves';
 
 const welcomeMessage: Omit<MessageDisplay, 'timestamp' | 'id'> = {
   author: 'ai' as const,
-  content: (
-    <div className="space-y-2">
-      <p className="font-bold text-lg">Welcome to EchoVerse!</p>
-      <p>
-        This is an AI-powered text adventure. To begin your journey, use the{' '}
-        <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">
-          /start
-        </code>{' '}
-        command.
-      </p>
-      <p className="mt-2 text-muted-foreground">
-        For example:{' '}
-        <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">
-          /start a space opera on a derelict starship
-        </code>
-      </p>
-    </div>
-  ),
+  content: `**Welcome to EchoVerse!**
+
+This is an AI-powered text adventure. To begin your journey, use the \`/start\` command.
+
+For example: \`/start a space opera on a derelict starship\``,
 };
 
 const getInitialMessage = (): MessageDisplay => ({
@@ -69,7 +56,7 @@ export function ChatInterface() {
     const sysMessage: MessageDisplay = {
       id: `sys-${Date.now()}`,
       author: 'ai',
-      content: <div className="text-accent italic">{content}</div>,
+      content: `*${content}*`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages(prev => [...prev, sysMessage]);
@@ -145,7 +132,7 @@ export function ChatInterface() {
   
       const historyForAction: MessageRaw[] = newMessages.map(m => ({
           ...m,
-          content: typeof m.content === 'string' ? m.content : '[system message]',
+          content: m.content,
       }));
 
       const gameSaveForAction = {

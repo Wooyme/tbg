@@ -103,7 +103,7 @@ const getSaveFromStorage = (name: string): GameSave | null => {
         }],
         activeStoryThreadId: `thread-${Date.now()}`,
       };
-      delete migratedSave.messages;
+      delete (migratedSave as any).messages; // clean up old property
       setSaveToStorage(migratedSave);
       return migratedSave;
     }
@@ -145,20 +145,17 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   
   // Derived state from activeGame
-  const messages = activeGame?.storyThreads.find(t => t.id === activeGame.activeStoryThreadId)?.messages.map(m => ({...m, content: m.content})) || [];
+  const messages = activeGame?.storyThreads.find(t => t.id === activeGame.activeStoryThreadId)?.messages || [];
   
   const setMessages = (updater: React.SetStateAction<MessageDisplay[]>) => {
     setActiveGame(prev => {
         if (!prev) return null;
         const currentMessages = prev.storyThreads.find(t => t.id === prev.activeStoryThreadId)?.messages || [];
-        const newRawMessages = typeof updater === 'function' ? updater(currentMessages.map(m => ({...m, content: m.content}))) : updater;
+        const newMessages = typeof updater === 'function' ? updater(currentMessages) : updater;
         
         const newStoryThreads = prev.storyThreads.map(thread => {
             if (thread.id === prev.activeStoryThreadId) {
-                return {
-                    ...thread,
-                    messages: newRawMessages.map(m => ({...m, content: typeof m.content === 'string' ? m.content : '[complex message]'})),
-                };
+                return { ...thread, messages: newMessages };
             }
             return thread;
         });
@@ -228,7 +225,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     if (activeGame?.name === name) {
         newGame(); // If deleting active game, start a new one
     }
-  }, [activeGame]); // removed newGame from deps
+  }, [activeGame?.name]); // removed newGame from deps
 
   const newGame = useCallback(() => {
     setActiveGame(createNewGameSave('new'));
@@ -277,7 +274,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   const value: GameSavesContextType = {
     saves,
-    messages: messages.map(m => ({...m, content: m.content})), // Ensure it's MessageDisplay[]
+    messages: messages,
     setMessages,
     isLoading,
     setIsLoading,

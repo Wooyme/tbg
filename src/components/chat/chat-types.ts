@@ -10,13 +10,8 @@ export type MessageRaw = {
   timestamp: string;
 };
 
-// Type for messages that will be displayed in the UI
-export type MessageDisplay = {
-  id: string;
-  author: MessageAuthor;
-  content: React.ReactNode; // Can be a string or a React component
-  timestamp: string;
-};
+// Type for messages that will be displayed in the UI, now same as MessageRaw
+export type MessageDisplay = MessageRaw;
 
 export type StoryThread = {
   id: string;
@@ -30,7 +25,7 @@ export type StoryThread = {
 
 export type PlayerSettings = {
   name: string;
-  description?: string;
+  description: string;
 };
 
 export type BackgroundSettings = {

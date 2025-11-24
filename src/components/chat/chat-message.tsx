@@ -27,9 +27,9 @@ function TypingIndicator() {
 
 export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: ChatMessageProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(typeof message.content === 'string' ? message.content : '');
+  const [editedContent, setEditedContent] = useState(message.content);
   const isAi = message.author === 'ai';
-  const canEdit = !isLoading && message.id !== 'init' && typeof message.content === 'string';
+  const canEdit = !isLoading && message.id !== 'init';
 
   const handleSave = () => {
     if (onEdit) {
@@ -40,7 +40,7 @@ export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: Ch
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditedContent(typeof message.content === 'string' ? message.content : '');
+    setEditedContent(message.content);
   };
   
   const handleDelete = () => {
@@ -97,13 +97,9 @@ export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: Ch
             </div>
           ) : (
             <div className="space-y-2 text-sm break-words">
-            {typeof message.content === 'string' ? (
-                message.content.split('\n').map((line, index) => (
-                    <p key={index}>{line || '\u00A0'}</p>
-                ))
-            ) : (
-                message.content
-            )}
+            {message.content.split('\n').map((line, index) => (
+                <p key={index}>{line || '\u00A0'}</p>
+            ))}
             </div>
           )}
         </div>
