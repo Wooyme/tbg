@@ -1,9 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ChatInputProps {
   onSendMessage: (input: string) => void;
@@ -36,12 +42,18 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
     }
   };
 
+  const handleCommandSelect = (command: string) => {
+    setInput(prev => `${command} ${prev}`.trim());
+    textareaRef.current?.focus();
+  };
+
+
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t bg-background">
       <div className="relative flex items-end gap-2">
         <Textarea
           ref={textareaRef}
-          placeholder="Type your message or /start..."
+          placeholder="Type your message or use / to see commands..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -49,15 +61,31 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
           disabled={isLoading}
           className="pr-12 resize-none overflow-y-auto"
         />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={isLoading || !input.trim()}
-          className="h-10 w-10 shrink-0"
-          aria-label="Send message"
-        >
-          <Send className="h-5 w-5" />
-        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 shrink-0"
+                    aria-label="Insert command"
+                    disabled={isLoading}
+                >
+                    <Plus className="h-5 w-5" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => handleCommandSelect('/start')}>
+                    /start
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleCommandSelect('/player_config')}>
+                    /player_config
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleCommandSelect('/background_config')}>
+                    /background_config
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </form>
   );
