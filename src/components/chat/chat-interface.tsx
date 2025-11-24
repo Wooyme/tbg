@@ -6,31 +6,56 @@ import { ChatList } from './chat-list';
 import { ChatInput } from './chat-input';
 import { handleUserMessage } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
+import { useGameSaves } from '@/hooks/use-game-saves';
 
 const welcomeMessage: Omit<MessageDisplay, 'timestamp' | 'id'> = {
-    author: 'ai' as const,
-    content: (
-      <div className="space-y-2">
-        <p className="font-bold text-lg">Welcome to EchoVerse!</p>
-        <p>This is an AI-powered text adventure. To begin your journey, use the <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">/start</code> command.</p>
-        <p className="mt-2 text-muted-foreground">For example: <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">/start a space opera on a derelict starship</code></p>
-      </div>
-    ),
+  author: 'ai' as const,
+  content: (
+    <div className="space-y-2">
+      <p className="font-bold text-lg">Welcome to EchoVerse!</p>
+      <p>
+        This is an AI-powered text adventure. To begin your journey, use the{' '}
+        <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">
+          /start
+        </code>{' '}
+        command.
+      </p>
+      <p className="mt-2 text-muted-foreground">
+        For example:{' '}
+        <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">
+          /start a space opera on a derelict starship
+        </code>
+      </p>
+    </div>
+  ),
 };
 
+const getInitialMessage = (): MessageDisplay => ({
+  ...welcomeMessage,
+  id: 'init',
+  timestamp: new Date().toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+});
+
+
 export function ChatInterface() {
-  const [messages, setMessages] = useState<MessageDisplay[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { 
+    messages, 
+    setMessages, 
+    isLoading, 
+    setIsLoading,
+    activeGame,
+  } = useGameSaves();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set initial message on client to avoid hydration mismatch with timestamp
-    setMessages([{
-        ...welcomeMessage,
-        id: 'init',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }])
-  }, []);
+    if (activeGame === 'new') {
+        setMessages([getInitialMessage()]);
+    }
+  }, [activeGame, setMessages]);
+
 
   const sendMessage = async (input: string) => {
     if (!input.trim()) return;

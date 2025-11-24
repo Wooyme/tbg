@@ -46,6 +46,9 @@ export type RAGConfig = {
 };
 
 export type GameSave = {
+  version: string;
+  name: string;
+  lastSaved: string;
   playerSettings: PlayerSettings;
   backgroundSettings: BackgroundSettings;
   gameOpeningSettings: GameOpeningSettings;

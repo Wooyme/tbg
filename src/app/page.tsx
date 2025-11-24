@@ -1,4 +1,5 @@
 import { ChatInterface } from "@/components/chat/chat-interface";
+import { SaveLoadDialog } from "@/components/chat/save-load-dialog";
 import { Logo } from "@/components/icons";
 
 export default function Home() {
@@ -10,6 +11,9 @@ export default function Home() {
           <h1 className="text-xl font-bold text-foreground font-headline">
             EchoVerse
           </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <SaveLoadDialog />
         </div>
       </header>
       <main className="flex-1 overflow-hidden">
