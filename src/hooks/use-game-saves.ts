@@ -2,75 +2,15 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
-  useCallback,
-  ReactNode,
 } from 'react';
 import {
   type MessageDisplay,
-  type MessageRaw,
   type GameSave,
   type SystemPrompts,
+  type PlayerSettings,
+  type BackgroundSettings,
+  type GameOpeningSettings,
 } from '@/components/chat/chat-types';
-import { useToast } from './use-toast';
-
-const SAVE_GAME_KEY_PREFIX = 'text-adventure-save-';
-const SAVE_INDEX_KEY = 'text-adventure-save-index';
-const SAVE_VERSION = '1.0';
-
-// --- Helper Functions for localStorage ---
-
-const getSaveIndex = (): string[] => {
-  try {
-    const indexJson = localStorage.getItem(SAVE_INDEX_KEY);
-    return indexJson ? JSON.parse(indexJson) : [];
-  } catch (error) {
-    console.error('Error reading save index from localStorage:', error);
-    return [];
-  }
-};
-
-const setSaveIndex = (index: string[]) => {
-  try {
-    localStorage.setItem(SAVE_INDEX_KEY, JSON.stringify(index));
-  } catch (error) {
-    console.error('Error writing save index to localStorage:', error);
-  }
-};
-
-const getSaveFromStorage = (name: string): GameSave | null => {
-  try {
-    const saveJson = localStorage.getItem(`${SAVE_GAME_KEY_PREFIX}${name}`);
-    return saveJson ? JSON.parse(saveJson) : null;
-  } catch (error) {
-    console.error(`Error reading save "${name}" from localStorage:`, error);
-    return null;
-  }
-};
-
-const setSaveToStorage = (save: GameSave) => {
-  try {
-    localStorage.setItem(`${SAVE_GAME_KEY_PREFIX}${save.name}`, JSON.stringify(save));
-    const index = getSaveIndex();
-    if (!index.includes(save.name)) {
-      setSaveIndex([...index, save.name]);
-    }
-  } catch (error) {
-    console.error(`Error writing save "${save.name}" to localStorage:`, error);
-  }
-};
-
-const deleteSaveFromStorage = (name: string) => {
-  try {
-    localStorage.removeItem(`${SAVE_GAME_KEY_PREFIX}${name}`);
-    const index = getSaveIndex();
-    setSaveIndex(index.filter(n => n !== name));
-  } catch (error) {
-    console.error(`Error deleting save "${name}" from localStorage:`, error);
-  }
-};
-
 
 // --- React Context and Provider ---
 
@@ -85,8 +25,19 @@ export interface GameSavesContextType {
   loadGame: (name: string) => void;
   deleteGame: (name: string) => void;
   newGame: () => void;
+  
+  playerSettings: PlayerSettings;
+  setPlayerSettings: React.Dispatch<React.SetStateAction<PlayerSettings>>;
+  
+  backgroundSettings: BackgroundSettings;
+  setBackgroundSettings: React.Dispatch<React.SetStateAction<BackgroundSettings>>;
+
+  gameOpeningSettings: GameOpeningSettings;
+  setGameOpeningSettings: React.Dispatch<React.SetStateAction<GameOpeningSettings>>;
+
   systemPrompts: SystemPrompts;
   setSystemPrompts: React.Dispatch<React.SetStateAction<SystemPrompts>>;
+
   editMessage: (id: string, content: string) => void;
   deleteMessage: (id: string) => void;
 }
@@ -102,6 +53,3 @@ export const useGameSaves = () => {
   }
   return context;
 };
-
-// The provider component is defined and used in src/app/layout.tsx
-// to avoid including JSX in a .ts file.

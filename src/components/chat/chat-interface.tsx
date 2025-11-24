@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import type { MessageDisplay, MessageRaw } from './chat-types';
 import { ChatList } from './chat-list';
 import { ChatInput } from './chat-input';
-import { handleUserMessage } from '@/app/actions';
+import { getAiInitialResponse, getAiContinuation } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
 import { useGameSaves } from '@/hooks/use-game-saves';
 
@@ -48,7 +48,14 @@ export function ChatInterface() {
     setIsLoading,
     activeGame,
     editMessage,
-    deleteMessage
+    deleteMessage,
+    playerSettings,
+    setPlayerSettings,
+    backgroundSettings,
+    setBackgroundSettings,
+    gameOpeningSettings,
+    setGameOpeningSettings,
+    systemPrompts,
   } = useGameSaves();
   const { toast } = useToast();
 
@@ -57,49 +64,117 @@ export function ChatInterface() {
         setMessages([getInitialMessage()]);
     }
   }, [activeGame, setMessages, messages.length]);
+  
+  const addSystemMessage = (content: string) => {
+    const sysMessage: MessageDisplay = {
+      id: `sys-${Date.now()}`,
+      author: 'ai',
+      content: <div className="text-accent italic">{content}</div>,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages(prev => [...prev, sysMessage]);
+  }
 
+  const handleCommand = async (input: string) => {
+    const [command, ...args] = input.trim().split(' ');
+    const restOfInput = args.join(' ');
+    
+    if (command.toLowerCase() === '/start') {
+        if (!restOfInput) {
+            addSystemMessage("You need to describe your adventure! For example: `/start a cyberpunk mystery in Neo-Tokyo`");
+            return;
+        }
+        setIsLoading(true);
+        setGameOpeningSettings({ openingCrawl: restOfInput });
+        addSystemMessage(`Starting new adventure: ${restOfInput}`);
+        try {
+          const aiResponseContent = await getAiInitialResponse(restOfInput);
+           const aiMessage: MessageDisplay = {
+            id: `ai-${Date.now()}`,
+            author: 'ai',
+            content: aiResponseContent,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages(prev => [...prev, aiMessage]);
+        } catch (error) {
+           console.error(error);
+           addSystemMessage("There was an error starting the adventure. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    } else if (command.toLowerCase() === '/player_config') {
+        setPlayerSettings(prev => ({...prev, description: restOfInput}));
+        addSystemMessage(`Player settings updated: ${restOfInput}`);
+    } else if (command.toLowerCase() === '/background_config') {
+        setBackgroundSettings({ description: restOfInput });
+        addSystemMessage(`Background settings updated: ${restOfInput}`);
+    } else {
+      // Not a valid command, treat as regular message
+      await sendRegularMessage(input);
+    }
+  }
+
+
+  const sendRegularMessage = async (input: string) => {
+      if (messages.length < 2 && !messages.find(m => m.id.startsWith('ai-'))) {
+        addSystemMessage("Your adventure hasn't started yet. Use the `/start` command to begin.");
+        return;
+      }
+      
+      const userMessage: MessageDisplay = {
+        id: `user-${Date.now()}`,
+        author: 'user',
+        content: input,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+  
+      const newMessages = [...messages, userMessage];
+      setMessages(newMessages);
+      setIsLoading(true);
+  
+      const historyForAction: MessageRaw[] = newMessages.map(m => ({
+          ...m,
+          content: typeof m.content === 'string' ? m.content : '[system message]',
+      }));
+
+      const gameSaveForAction = {
+        messages: historyForAction,
+        playerSettings,
+        backgroundSettings,
+        gameOpeningSettings,
+        systemPrompts,
+        ragConfig: { enabled: false }
+      };
+  
+      try {
+        const aiResponseContent = await getAiContinuation(gameSaveForAction, input);
+        const aiMessage: MessageDisplay = {
+          id: `ai-${Date.now()}`,
+          author: 'ai',
+          content: aiResponseContent,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } catch (error) {
+          console.error(error);
+          toast({
+            variant: "destructive",
+            title: "Uh oh! Something went wrong.",
+            description: "There was a problem with the AI. Please try again.",
+          });
+          setMessages(prev => prev.slice(0, prev.length -1)); 
+      } finally {
+          setIsLoading(false);
+      }
+  };
 
   const sendMessage = async (input: string) => {
     if (!input.trim()) return;
 
-    const userMessage: MessageDisplay = {
-      id: `user-${Date.now()}`,
-      author: 'user',
-      content: input,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setIsLoading(true);
-
-    // Convert MessageDisplay[] to MessageRaw[] for the action
-    const historyForAction: MessageRaw[] = newMessages.map(m => ({
-        ...m,
-        // We can only serialize string content
-        content: typeof m.content === 'string' ? m.content : '[system message]',
-    }));
-
-
-    try {
-      const aiResponseContent = await handleUserMessage(historyForAction, input);
-      const aiMessage: MessageDisplay = {
-        id: `ai-${Date.now()}`,
-        author: 'ai',
-        content: aiResponseContent,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-        console.error(error);
-        toast({
-          variant: "destructive",
-          title: "Uh oh! Something went wrong.",
-          description: "There was a problem with the AI. Please try again.",
-        });
-        setMessages(prev => prev.slice(0, prev.length -1)); // Remove the user message if AI fails
-    } finally {
-        setIsLoading(false);
+    if (input.startsWith('/')) {
+      handleCommand(input);
+    } else {
+      await sendRegularMessage(input);
     }
   };
 

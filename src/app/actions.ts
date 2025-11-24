@@ -2,6 +2,9 @@
 
 import { generateAdventureFromPrompt } from '@/ai/flows/generate-adventure-from-prompt';
 import type { MessageRaw } from '@/components/chat/chat-types';
+import { ai } from '@/ai/genkit';
+import { GameSave } from '@/components/chat/chat-types';
+
 
 function formatMessageHistory(messages: MessageRaw[]): string {
   return messages
@@ -13,26 +16,23 @@ function formatMessageHistory(messages: MessageRaw[]): string {
     .join('\n');
 }
 
-export async function handleUserMessage(
-  history: MessageRaw[],
+export async function getAiInitialResponse(prompt: string): Promise<string> {
+  const response = await generateAdventureFromPrompt({ prompt: `Create a text adventure game based on this prompt: ${prompt}` });
+  return response.scenario;
+}
+
+export async function getAiContinuation(
+  gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version'>,
   userInput: string
 ): Promise<string> {
   try {
-    if (userInput.toLowerCase().startsWith('/start')) {
-      const prompt = userInput.substring(6).trim();
-      if (!prompt) {
-        return "You need to describe your adventure! For example: `/start a cyberpunk mystery in Neo-Tokyo`";
-      }
-      const response = await generateAdventureFromPrompt({ prompt: `Create a text adventure game based on this prompt: ${prompt}` });
-      return response.scenario;
-    }
+    const adventureLog = formatMessageHistory(gameSave.messages);
 
-    if (history.length < 2) {
-        return "Your adventure hasn't started yet. Use the `/start` command to begin. For example: `/start a fantasy quest to find a lost artifact`";
-    }
+    const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
 
-    const adventureLog = formatMessageHistory(history);
-    const continuationPrompt = `This is a text adventure game. Continue the story based on the last player action. Be descriptive and engaging. End your response by asking the player what they want to do next.
+The player's character is: ${gameSave.playerSettings.name}, ${gameSave.playerSettings.description || 'no description'}.
+The story's background is: ${gameSave.backgroundSettings.description || 'no description'}.
+The original opening for the game was: ${gameSave.gameOpeningSettings.openingCrawl || 'no description'}.
 
 Story so far:
 ${adventureLog}
@@ -41,8 +41,10 @@ Player's latest action: ${userInput}
 
 What happens next?`;
 
-    const response = await generateAdventureFromPrompt({ prompt: continuationPrompt });
-    return response.scenario;
+    const { output } = await ai.generate({
+      prompt: continuationPrompt,
+    });
+    return output?.text ?? 'The world seems to have fallen silent. Try again.';
 
   } catch (error) {
     console.error('Error handling user message:', error);

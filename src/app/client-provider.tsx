@@ -12,6 +12,9 @@ import {
   type MessageRaw,
   type GameSave,
   type SystemPrompts,
+  type PlayerSettings,
+  type BackgroundSettings,
+  type GameOpeningSettings
 } from '@/components/chat/chat-types';
 import { GameSavesContext, GameSavesContextType } from '@/hooks/use-game-saves';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +27,20 @@ const DEFAULT_SYSTEM_PROMPTS: SystemPrompts = {
     mainPrompt: "This is a text adventure game. Continue the story based on the last player action. Be descriptive and engaging. End your response by asking the player what they want to do next.",
     summarizationPrompt: "Summarize the following adventure log concisely."
 }
+
+const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
+    name: 'Player',
+    description: '',
+};
+
+const DEFAULT_BACKGROUND_SETTINGS: BackgroundSettings = {
+    description: '',
+};
+
+const DEFAULT_GAME_OPENING_SETTINGS: GameOpeningSettings = {
+    openingCrawl: '',
+};
+
 
 // --- Helper Functions for localStorage ---
 
@@ -84,6 +101,11 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<MessageDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeGame, setActiveGame] = useState<string | null>(null);
+
+  // New states for settings
+  const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(DEFAULT_PLAYER_SETTINGS);
+  const [backgroundSettings, setBackgroundSettings] = useState<BackgroundSettings>(DEFAULT_BACKGROUND_SETTINGS);
+  const [gameOpeningSettings, setGameOpeningSettings] = useState<GameOpeningSettings>(DEFAULT_GAME_OPENING_SETTINGS);
   const [systemPrompts, setSystemPrompts] = useState<SystemPrompts>(DEFAULT_SYSTEM_PROMPTS);
 
   useEffect(() => {
@@ -117,10 +139,10 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       name,
       lastSaved: new Date().toISOString(),
       messages: rawMessages,
-      playerSettings: { name: 'Player' },
-      backgroundSettings: { description: '' },
-      gameOpeningSettings: { openingCrawl: '' },
-      systemPrompts: systemPrompts, // Save current prompts
+      playerSettings,
+      backgroundSettings,
+      gameOpeningSettings,
+      systemPrompts,
       ragConfig: { enabled: false },
     };
 
@@ -133,19 +155,20 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       return [...prev, newSave];
     });
     setActiveGame(name);
-  }, [messages, toast, systemPrompts]);
+  }, [messages, playerSettings, backgroundSettings, gameOpeningSettings, systemPrompts, toast]);
 
   const loadGame = useCallback((name: string) => {
     const savedGame = getSaveFromStorage(name);
     if (savedGame) {
-      // For now, we assume content is always string. This will need to be
-      // more robust if we save React nodes in the future.
       const displayMessages: MessageDisplay[] = savedGame.messages.map(m => ({
         ...m,
         content: m.content,
       }));
       setMessages(displayMessages);
       setSystemPrompts(savedGame.systemPrompts || DEFAULT_SYSTEM_PROMPTS);
+      setPlayerSettings(savedGame.playerSettings || DEFAULT_PLAYER_SETTINGS);
+      setBackgroundSettings(savedGame.backgroundSettings || DEFAULT_BACKGROUND_SETTINGS);
+      setGameOpeningSettings(savedGame.gameOpeningSettings || DEFAULT_GAME_OPENING_SETTINGS);
       setActiveGame(name);
     } else {
       toast({
@@ -164,6 +187,9 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const newGame = useCallback(() => {
     setMessages([]); // Will be populated with welcome message by ChatInterface
     setSystemPrompts(DEFAULT_SYSTEM_PROMPTS);
+    setPlayerSettings(DEFAULT_PLAYER_SETTINGS);
+    setBackgroundSettings(DEFAULT_BACKGROUND_SETTINGS);
+    setGameOpeningSettings(DEFAULT_GAME_OPENING_SETTINGS);
     setActiveGame('new');
   }, []);
 
@@ -189,6 +215,12 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     loadGame,
     deleteGame,
     newGame,
+    playerSettings,
+    setPlayerSettings,
+    backgroundSettings,
+    setBackgroundSettings,
+    gameOpeningSettings,
+    setGameOpeningSettings,
     systemPrompts,
     setSystemPrompts,
     editMessage,
