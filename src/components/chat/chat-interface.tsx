@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Message } from './chat-types';
+import type { MessageDisplay, MessageRaw } from './chat-types';
 import { ChatList } from './chat-list';
 import { ChatInput } from './chat-input';
 import { handleUserMessage } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
 
-const welcomeMessage = {
-    id: 'init',
+const welcomeMessage: Omit<MessageDisplay, 'timestamp' | 'id'> = {
     author: 'ai' as const,
     content: (
       <div className="space-y-2">
@@ -17,11 +16,10 @@ const welcomeMessage = {
         <p className="mt-2 text-muted-foreground">For example: <code className="bg-muted text-primary-foreground px-1 py-0.5 rounded-sm font-mono text-sm">/start a space opera on a derelict starship</code></p>
       </div>
     ),
-    timestamp: '',
 };
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -29,6 +27,7 @@ export function ChatInterface() {
     // Set initial message on client to avoid hydration mismatch with timestamp
     setMessages([{
         ...welcomeMessage,
+        id: 'init',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }])
   }, []);
@@ -36,7 +35,7 @@ export function ChatInterface() {
   const sendMessage = async (input: string) => {
     if (!input.trim()) return;
 
-    const userMessage: Message = {
+    const userMessage: MessageDisplay = {
       id: `user-${Date.now()}`,
       author: 'user',
       content: input,
@@ -47,9 +46,17 @@ export function ChatInterface() {
     setMessages(newMessages);
     setIsLoading(true);
 
+    // Convert MessageDisplay[] to MessageRaw[] for the action
+    const historyForAction: MessageRaw[] = newMessages.map(m => ({
+        ...m,
+        // We can only serialize string content
+        content: typeof m.content === 'string' ? m.content : '[system message]',
+    }));
+
+
     try {
-      const aiResponseContent = await handleUserMessage(newMessages, input);
-      const aiMessage: Message = {
+      const aiResponseContent = await handleUserMessage(historyForAction, input);
+      const aiMessage: MessageDisplay = {
         id: `ai-${Date.now()}`,
         author: 'ai',
         content: aiResponseContent,

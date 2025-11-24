@@ -2,11 +2,11 @@
 
 import { useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Message } from './chat-types';
+import type { MessageDisplay } from './chat-types';
 import { ChatMessage } from './chat-message';
 
 interface ChatListProps {
-  messages: Message[];
+  messages: MessageDisplay[];
   isLoading: boolean;
 }
 

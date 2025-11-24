@@ -1,21 +1,20 @@
 'use server';
 
 import { generateAdventureFromPrompt } from '@/ai/flows/generate-adventure-from-prompt';
-import type { Message } from '@/components/chat/chat-types';
+import type { MessageRaw } from '@/components/chat/chat-types';
 
-function formatMessageHistory(messages: Message[]): string {
+function formatMessageHistory(messages: MessageRaw[]): string {
   return messages
     .map(m => {
       const author = m.author === 'user' ? 'Player' : 'GameMaster';
-      // Simple string conversion for content
-      const content = typeof m.content === 'string' ? m.content : '[system message]';
+      const content = m.content;
       return `${author}: ${content}`;
     })
     .join('\n');
 }
 
 export async function handleUserMessage(
-  history: Message[],
+  history: MessageRaw[],
   userInput: string
 ): Promise<string> {
   try {

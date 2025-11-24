@@ -1,10 +1,10 @@
 import { User, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Message } from './chat-types';
+import type { MessageDisplay } from './chat-types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface ChatMessageProps {
-  message: Message;
+  message: MessageDisplay;
   isLoading?: boolean;
 }
 
