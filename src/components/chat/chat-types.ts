@@ -8,6 +8,7 @@ export type MessageRaw = {
   author: MessageAuthor;
   content: string; // Plain string content
   timestamp: string;
+  lore?: LorebookEntry[];
 };
 
 // Type for messages that will be displayed in the UI, now same as MessageRaw

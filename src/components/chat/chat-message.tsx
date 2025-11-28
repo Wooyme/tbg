@@ -1,5 +1,5 @@
 'use client';
-import { User, Bot, Pencil, Trash2, Save, X } from 'lucide-react';
+import { User, Bot, Pencil, Trash2, Save, X, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MessageDisplay } from './chat-types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -9,6 +9,11 @@ import { useState } from 'react';
 import { Textarea } from '../ui/textarea';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface ChatMessageProps {
   message: MessageDisplay;
@@ -106,6 +111,33 @@ export function ChatMessage({ message, isLoading = false, onEdit, onDelete }: Ch
             </ReactMarkdown>
           )}
         </div>
+
+        {message.lore && message.lore.length > 0 && (
+          <Collapsible className="w-full">
+            <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-muted-foreground data-[state=open]:hidden">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Show Lore ({message.lore.length})
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 text-xs">
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-muted-foreground data-[state=closed]:hidden">
+                         <BookOpen className="mr-2 h-4 w-4" />
+                        Hide Lore
+                    </Button>
+                </CollapsibleTrigger>
+                <div className="p-3 bg-secondary/50 rounded-md border space-y-2">
+                    {message.lore.map(entry => (
+                        <div key={entry.id}>
+                            <p className="font-bold">{entry.keywords.join(', ')}</p>
+                            <p className="text-muted-foreground">{entry.details}</p>
+                        </div>
+                    ))}
+                </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
         
         {canEdit && (
           <div className="flex items-center gap-1.5 pt-1">

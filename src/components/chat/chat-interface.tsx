@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { MessageDisplay, MessageRaw } from './chat-types';
+import type { MessageDisplay, MessageRaw, LorebookEntry } from './chat-types';
 import { ChatList } from './chat-list';
 import { ChatInput } from './chat-input';
 import { getAiInitialResponse, getAiContinuation } from '@/app/actions';
@@ -156,18 +156,39 @@ export function ChatInterface() {
     }
   }
 
+  const findMatchingLore = (input: string): LorebookEntry[] => {
+    if (!lorebook || lorebook.length === 0) return [];
+
+    const matchedEntries: LorebookEntry[] = [];
+    const lowercasedInput = input.toLowerCase();
+
+    for (const entry of lorebook) {
+      for (const keyword of entry.keywords) {
+        if (lowercasedInput.includes(keyword.toLowerCase())) {
+          if (!matchedEntries.some(me => me.id === entry.id)) {
+            matchedEntries.push(entry);
+          }
+        }
+      }
+    }
+    return matchedEntries;
+  };
+
 
   const sendRegularMessage = async (input: string) => {
       if (messages.length < 1 || messages[0].id === 'init') {
         addSystemMessage("Your adventure hasn't started yet. Use the `/start` command to begin.");
         return;
       }
+
+      const matchedLore = findMatchingLore(input);
       
       const userMessage: MessageDisplay = {
         id: `user-${Date.now()}`,
         author: 'user',
         content: input,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        lore: matchedLore.length > 0 ? matchedLore : undefined,
       };
   
       const newMessages = [...messages, userMessage];
