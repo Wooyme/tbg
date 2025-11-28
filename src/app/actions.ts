@@ -23,7 +23,7 @@ function formatMessage(message: MessageRaw): string {
 }
 
 
-function formatMessageHistory(messages: MessageRaw[]): string {
+export async function formatMessageHistory(messages: MessageRaw[]): Promise<string> {
   return messages.map(formatMessage).join('\n');
 }
 
@@ -81,7 +81,7 @@ ${lorebookContent}
 --- END LOREBOOK ---
 
 Story so far:
-${adventureLog}
+${await adventureLog}
 
 What happens next?`;
 

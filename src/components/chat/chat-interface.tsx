@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import type { MessageDisplay, MessageRaw, LorebookEntry } from './chat-types';
 import { ChatList } from './chat-list';
 import { ChatInput } from './chat-input';
-import { getAiInitialResponse, getAiContinuation } from '@/app/actions';
+import { getAiInitialResponse, getAiContinuation, formatMessageHistory } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
 import { useGameSaves } from '@/hooks/use-game-saves';
 import { summarizeAdventureLog } from '@/ai/flows/summarize-adventure-log';
@@ -27,23 +27,6 @@ const getInitialMessage = (): MessageDisplay => ({
     minute: '2-digit',
   }),
 });
-
-function formatMessageHistory(messages: MessageRaw[]): string {
-    return messages
-        .map(msg => {
-            const author = msg.author === 'user' ? 'Player' : 'GameMaster';
-            let formattedContent = `${author}: ${msg.content}`;
-            if (msg.lore && msg.lore.length > 0) {
-                const loreDetails = msg.lore
-                    .map(entry => `- ${entry.keywords.join(', ')}: ${entry.details}`)
-                    .join('\n');
-                const indentedLore = loreDetails.split('\n').map(line => `    ${line}`).join('\n');
-                formattedContent += `\n[The player recalled the following lore]:\n${indentedLore}`;
-            }
-            return formattedContent;
-        })
-        .join('\n');
-}
 
 
 export function ChatInterface() {
@@ -145,7 +128,7 @@ export function ChatInterface() {
         setIsLoading(true);
         addSystemMessage("Ending current story thread, generating summary, and updating lorebook...");
 
-        const adventureLog = formatMessageHistory(messages);
+        const adventureLog = await formatMessageHistory(messages);
         
         try {
             const [summaryResult, loreResult] = await Promise.all([
