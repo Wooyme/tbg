@@ -217,7 +217,7 @@ export function ChatInterface() {
       };
   
       try {
-        const aiResponseContent = await getAiContinuation(gameSaveForAction, input);
+        const aiResponseContent = await getAiContinuation(gameSaveForAction);
         const aiMessage: MessageDisplay = {
           id: `ai-${Date.now()}`,
           author: 'ai',

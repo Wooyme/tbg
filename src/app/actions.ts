@@ -63,15 +63,12 @@ export async function getAiInitialResponse(
 }
 
 export async function getAiContinuation(
-  gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'> & { activeStoryThread: StoryThread },
-  userInput: string
+  gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'> & { activeStoryThread: StoryThread }
 ): Promise<string> {
   try {
     const adventureLog = formatMessageHistory(gameSave.activeStoryThread.messages);
     const lorebookContent = formatLorebook(gameSave.lorebook);
 
-    // The user's input is the last message in the history log sent to the AI.
-    // We already have it formatted in adventureLog.
     const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
 
 The player's character is: ${gameSave.playerSettings.name}, ${gameSave.playerSettings.description || 'no description'}.
