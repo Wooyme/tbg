@@ -47,6 +47,7 @@ export function ChatInterface() {
     activeGame,
     editMessage,
     deleteMessage,
+    model,
     playerSettings,
     setPlayerSettings,
     backgroundSettings,
@@ -90,6 +91,7 @@ export function ChatInterface() {
         addSystemMessage(`Starting new adventure: ${restOfInput}`);
         
         const gameSaveForAction = {
+            model,
             playerSettings,
             backgroundSettings,
             gameOpeningSettings: currentOpeningSettings,
@@ -178,6 +180,7 @@ export function ChatInterface() {
 
       const gameSaveForAction = {
         activeStoryThread: { messages: historyForAction, id: 'temp', title: 'temp', summary: 'temp' },
+        model,
         playerSettings,
         backgroundSettings,
         gameOpeningSettings,
