@@ -1,7 +1,7 @@
 'use server';
 
 import { generateAdventureFromPrompt } from '@/ai/flows/generate-adventure-from-prompt';
-import type { MessageRaw, StoryThread } from '@/components/chat/chat-types';
+import type { LorebookEntry, MessageRaw, StoryThread } from '@/components/chat/chat-types';
 import { ai } from '@/ai/genkit';
 import { GameSave } from '@/components/chat/chat-types';
 
@@ -16,8 +16,18 @@ function formatMessageHistory(messages: MessageRaw[]): string {
     .join('\n');
 }
 
+function formatLorebook(lorebook: LorebookEntry[]): string {
+    if (!lorebook || lorebook.length === 0) {
+        return "No lorebook entries yet.";
+    }
+    return lorebook.map(entry => {
+        return `Keywords: ${entry.keywords.join(", ")}\nDetails: ${entry.details}`;
+    }).join("\n\n");
+}
+
+
 export async function getAiInitialResponse(
-    gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'>
+    gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId' | 'lorebook'>
 ): Promise<string> {
     const { playerSettings, backgroundSettings, gameOpeningSettings, model } = gameSave;
 
@@ -47,12 +57,18 @@ export async function getAiContinuation(
 ): Promise<string> {
   try {
     const adventureLog = formatMessageHistory(gameSave.activeStoryThread.messages);
+    const lorebookContent = formatLorebook(gameSave.lorebook);
 
     const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
 
 The player's character is: ${gameSave.playerSettings.name}, ${gameSave.playerSettings.description || 'no description'}.
 The story's background is: ${gameSave.backgroundSettings.description || 'no description'}.
 The original opening for the game was: ${gameSave.gameOpeningSettings.openingCrawl || 'no description'}.
+
+Consider the following lore to maintain consistency:
+--- LOREBOOK ---
+${lorebookContent}
+--- END LOREBOOK ---
 
 Story so far:
 ${adventureLog}

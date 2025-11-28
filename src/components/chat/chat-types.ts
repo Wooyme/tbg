@@ -20,6 +20,14 @@ export type StoryThread = {
   messages: MessageRaw[];
 };
 
+export type LorebookEntry = {
+    id: string;
+    keywords: string[];
+    details: string;
+};
+
+export type Lorebook = LorebookEntry[];
+
 
 // --- Game Save State Types ---
 
@@ -58,4 +66,5 @@ export type GameSave = {
   ragConfig: RAGConfig;
   storyThreads: StoryThread[];
   activeStoryThreadId: string;
+  lorebook: Lorebook;
 };

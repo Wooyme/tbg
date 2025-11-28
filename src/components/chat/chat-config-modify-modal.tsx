@@ -37,7 +37,11 @@ import type {
   BackgroundSettings,
   GameOpeningSettings,
   RAGConfig,
+  Lorebook,
+  LorebookEntry,
 } from './chat-types';
+import { PlusCircle, Save, Trash2 } from 'lucide-react';
+import { ScrollArea } from '../ui/scroll-area';
 
 type LocalState = {
   model: string;
@@ -46,6 +50,7 @@ type LocalState = {
   backgroundSettings: BackgroundSettings;
   gameOpeningSettings: GameOpeningSettings;
   ragConfig: RAGConfig;
+  lorebook: Lorebook;
 };
 
 export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
@@ -57,9 +62,11 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
     playerSettings,
     setPlayerSettings,
     backgroundSettings,
-    setBackgroundSettings,
+setBackgroundSettings,
     gameOpeningSettings,
     setGameOpeningSettings,
+    lorebook,
+    setLorebook,
     // Assuming ragConfig will be added to useGameSaves
     // ragConfig, 
     // setRagConfig 
@@ -74,6 +81,7 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
     backgroundSettings,
     gameOpeningSettings,
     ragConfig: { enabled: false }, // Default RAG config
+    lorebook,
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -88,9 +96,10 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
         backgroundSettings,
         gameOpeningSettings,
         ragConfig: { enabled: false }, // Replace with global ragConfig when available
+        lorebook,
       });
     }
-  }, [dialogOpen, model, systemPrompts, playerSettings, backgroundSettings, gameOpeningSettings]);
+  }, [dialogOpen, model, systemPrompts, playerSettings, backgroundSettings, gameOpeningSettings, lorebook]);
 
   const handleSave = () => {
     setModel(localState.model);
@@ -98,6 +107,7 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
     setPlayerSettings(localState.playerSettings);
     setBackgroundSettings(localState.backgroundSettings);
     setGameOpeningSettings(localState.gameOpeningSettings);
+    setLorebook(localState.lorebook);
     // setRagConfig(localState.ragConfig);
     
     setDialogOpen(false);
@@ -131,6 +141,31 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
     }));
   };
 
+  const handleLorebookChange = (index: number, field: keyof LorebookEntry, value: string | string[]) => {
+      const updatedLorebook = [...localState.lorebook];
+      if (field === 'keywords' && typeof value === 'string') {
+          updatedLorebook[index] = { ...updatedLorebook[index], keywords: value.split(',').map(k => k.trim()) };
+      } else if (field === 'details' && typeof value === 'string') {
+          updatedLorebook[index] = { ...updatedLorebook[index], details: value };
+      }
+      setLocalState(prev => ({ ...prev, lorebook: updatedLorebook }));
+  };
+
+  const addLorebookEntry = () => {
+      const newEntry: LorebookEntry = {
+          id: `lore-${Date.now()}`,
+          keywords: [],
+          details: ''
+      };
+      setLocalState(prev => ({ ...prev, lorebook: [...prev.lorebook, newEntry] }));
+  };
+
+  const deleteLorebookEntry = (index: number) => {
+      const updatedLorebook = localState.lorebook.filter((_, i) => i !== index);
+      setLocalState(prev => ({ ...prev, lorebook: updatedLorebook }));
+  };
+
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -143,9 +178,10 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
         </DialogHeader>
         
         <Tabs defaultValue="ai-settings" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="ai-settings">AI Settings</TabsTrigger>
             <TabsTrigger value="game-settings">Game Settings</TabsTrigger>
+            <TabsTrigger value="lorebook">Lorebook</TabsTrigger>
           </TabsList>
           
           <TabsContent value="ai-settings" className="py-4 space-y-4">
@@ -232,6 +268,48 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
                 className="min-h-[100px] text-sm"
               />
             </div>
+          </TabsContent>
+
+          <TabsContent value="lorebook" className="py-4 space-y-4">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Lorebook Entries</h3>
+                <Button onClick={addLorebookEntry} size="sm" variant="outline">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Entry
+                </Button>
+            </div>
+            <ScrollArea className="h-[350px] w-full rounded-md border p-4">
+                {localState.lorebook.length === 0 ? (
+                    <p className="text-center text-muted-foreground">No lore entries yet.</p>
+                ) : (
+                    <div className="space-y-4">
+                        {localState.lorebook.map((entry, index) => (
+                            <div key={entry.id} className="space-y-2 p-3 bg-secondary/50 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <Label htmlFor={`lore-keywords-${index}`}>Keywords</Label>
+                                   <Button onClick={() => deleteLorebookEntry(index)} size="icon" variant="ghost" className="h-7 w-7">
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                   </Button>
+                                </div>
+                                <Input
+                                    id={`lore-keywords-${index}`}
+                                    placeholder="character, location, item..."
+                                    value={entry.keywords.join(', ')}
+                                    onChange={(e) => handleLorebookChange(index, 'keywords', e.target.value)}
+                                />
+                                <Label htmlFor={`lore-details-${index}`}>Details</Label>
+                                <Textarea
+                                    id={`lore-details-${index}`}
+                                    placeholder="Details about the lore..."
+                                    value={entry.details}
+                                    onChange={(e) => handleLorebookChange(index, 'details', e.target.value)}
+                                    className="min-h-[80px]"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </ScrollArea>
           </TabsContent>
         </Tabs>
 

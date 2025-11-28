@@ -10,6 +10,7 @@ import {
   type PlayerSettings,
   type BackgroundSettings,
   type GameOpeningSettings,
+  type Lorebook,
 } from '@/components/chat/chat-types';
 
 // --- React Context and Provider ---
@@ -40,6 +41,9 @@ export interface GameSavesContextType {
 
   systemPrompts: SystemPrompts;
   setSystemPrompts: React.Dispatch<React.SetStateAction<SystemPrompts>>;
+
+  lorebook: Lorebook;
+  setLorebook: React.Dispatch<React.SetStateAction<Lorebook>>;
 
   editMessage: (id: string, content: string) => void;
   deleteMessage: (id: string) => void;

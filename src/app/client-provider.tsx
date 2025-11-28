@@ -16,13 +16,15 @@ import {
   type BackgroundSettings,
   type GameOpeningSettings,
   type StoryThread,
+  type Lorebook,
+  type LorebookEntry,
 } from '@/components/chat/chat-types';
 import { GameSavesContext, GameSavesContextType } from '@/hooks/use-game-saves';
 import { useToast } from '@/hooks/use-toast';
 
 const SAVE_GAME_KEY_PREFIX = 'text-adventure-save-';
 const SAVE_INDEX_KEY = 'text-adventure-save-index';
-const SAVE_VERSION = '1.2'; // Bump version for new model property
+const SAVE_VERSION = '1.3'; // Bump version for lorebook
 
 const DEFAULT_MODEL = 'googleai/gemini-2.5-flash';
 
@@ -44,6 +46,8 @@ const DEFAULT_GAME_OPENING_SETTINGS: GameOpeningSettings = {
     openingCrawl: '',
 };
 
+const DEFAULT_LOREBOOK: Lorebook = [];
+
 const createNewGameSave = (name: string): GameSave => {
   const initialThread: StoryThread = {
     id: `thread-${Date.now()}`,
@@ -63,6 +67,7 @@ const createNewGameSave = (name: string): GameSave => {
     ragConfig: { enabled: false },
     storyThreads: [initialThread],
     activeStoryThreadId: initialThread.id,
+    lorebook: DEFAULT_LOREBOOK,
   };
 };
 
@@ -94,26 +99,29 @@ const getSaveFromStorage = (name: string): GameSave | null => {
     const save = JSON.parse(saveJson);
     
     // Migration for old save formats
-    if (!save.storyThreads) {
-      const newThreadId = `thread-${Date.now()}`;
-      const migratedSave: GameSave = {
-        ...createNewGameSave(save.name),
-        ...save,
-        model: save.model || DEFAULT_MODEL, // Add model migration
-        storyThreads: [{
-          id: newThreadId,
-          title: 'Imported Story',
-          summary: 'An old adventure continued.',
-          messages: save.messages || [],
-        }],
-        activeStoryThreadId: newThreadId,
-      };
-      delete (migratedSave as any).messages; // clean up old property
-      setSaveToStorage(migratedSave);
-      return migratedSave;
-    }
-     if (!save.model) {
-      save.model = DEFAULT_MODEL;
+    if (!save.version || save.version < SAVE_VERSION) {
+        const migratedSave = {
+            ...createNewGameSave(save.name),
+            ...save,
+            version: SAVE_VERSION,
+            model: save.model || DEFAULT_MODEL,
+            lorebook: save.lorebook || DEFAULT_LOREBOOK,
+        };
+
+        if (!migratedSave.storyThreads) {
+            const newThreadId = `thread-${Date.now()}`;
+            migratedSave.storyThreads = [{
+                id: newThreadId,
+                title: 'Imported Story',
+                summary: 'An old adventure continued.',
+                messages: save.messages || [],
+            }];
+            migratedSave.activeStoryThreadId = newThreadId;
+            delete (migratedSave as any).messages; // clean up old property
+        }
+        
+        setSaveToStorage(migratedSave);
+        return migratedSave;
     }
     
     return save;
@@ -287,6 +295,14 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const setLorebook = (updater: React.SetStateAction<Lorebook>) => {
+    setActiveGame(prev => {
+      if (!prev) return null;
+      const newLorebook = typeof updater === 'function' ? updater(prev.lorebook) : updater;
+      return { ...prev, lorebook: newLorebook };
+    });
+  };
+
   const updateThreadSummary = (threadId: string, title: string, summary: string) => {
     setActiveGame(prev => {
         if (!prev) return null;
@@ -339,6 +355,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setGameOpeningSettings,
     systemPrompts: activeGame?.systemPrompts || DEFAULT_SYSTEM_PROMPTS,
     setSystemPrompts,
+    lorebook: activeGame?.lorebook || DEFAULT_LOREBOOK,
+    setLorebook,
     editMessage,
     deleteMessage,
     updateThreadSummary,
@@ -351,3 +369,5 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     </GameSavesContext.Provider>
   );
 }
+
+    

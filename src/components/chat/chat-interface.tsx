@@ -55,6 +55,7 @@ export function ChatInterface() {
     gameOpeningSettings,
     setGameOpeningSettings,
     systemPrompts,
+    lorebook,
     updateThreadSummary,
     createNewThread,
   } = useGameSaves();
@@ -178,14 +179,17 @@ export function ChatInterface() {
           content: m.content,
       }));
 
+      if (!activeGame) return;
+
       const gameSaveForAction = {
-        activeStoryThread: { messages: historyForAction, id: 'temp', title: 'temp', summary: 'temp' },
+        activeStoryThread: { messages: historyForAction, id: activeGame.activeStoryThreadId, title: 'temp', summary: 'temp' },
         model,
         playerSettings,
         backgroundSettings,
         gameOpeningSettings,
         systemPrompts,
-        ragConfig: { enabled: false }
+        ragConfig: { enabled: false },
+        lorebook,
       };
   
       try {
