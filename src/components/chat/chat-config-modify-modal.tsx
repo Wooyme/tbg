@@ -17,6 +17,13 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -33,6 +40,7 @@ import type {
 } from './chat-types';
 
 type LocalState = {
+  model: string;
   systemPrompts: SystemPrompts;
   playerSettings: PlayerSettings;
   backgroundSettings: BackgroundSettings;
@@ -42,6 +50,8 @@ type LocalState = {
 
 export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
   const {
+    model,
+    setModel,
     systemPrompts,
     setSystemPrompts,
     playerSettings,
@@ -58,6 +68,7 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
   
   // A local state to handle form changes without affecting the global state until save.
   const [localState, setLocalState] = useState<LocalState>({
+    model,
     systemPrompts,
     playerSettings,
     backgroundSettings,
@@ -71,6 +82,7 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (dialogOpen) {
       setLocalState({
+        model,
         systemPrompts,
         playerSettings,
         backgroundSettings,
@@ -78,9 +90,10 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
         ragConfig: { enabled: false }, // Replace with global ragConfig when available
       });
     }
-  }, [dialogOpen, systemPrompts, playerSettings, backgroundSettings, gameOpeningSettings]);
+  }, [dialogOpen, model, systemPrompts, playerSettings, backgroundSettings, gameOpeningSettings]);
 
   const handleSave = () => {
+    setModel(localState.model);
     setSystemPrompts(localState.systemPrompts);
     setPlayerSettings(localState.playerSettings);
     setBackgroundSettings(localState.backgroundSettings);
@@ -136,6 +149,20 @@ export function ChatConfigModifyModal({ children }: { children: ReactNode }) {
           </TabsList>
           
           <TabsContent value="ai-settings" className="py-4 space-y-4">
+             <div className="grid w-full gap-2">
+                <Label htmlFor="ai-model">AI Model</Label>
+                <Select value={localState.model} onValueChange={(value) => setLocalState(prev => ({...prev, model: value}))}>
+                    <SelectTrigger id="ai-model">
+                        <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="googleai/gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                        <SelectItem value="googleai/gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                        <SelectItem value="googleai/gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                        <SelectItem value="googleai/gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
             <div className="grid w-full gap-2">
               <Label htmlFor="main-prompt">System Prompt</Label>
               <Textarea

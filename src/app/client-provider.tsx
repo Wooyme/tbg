@@ -22,7 +22,9 @@ import { useToast } from '@/hooks/use-toast';
 
 const SAVE_GAME_KEY_PREFIX = 'text-adventure-save-';
 const SAVE_INDEX_KEY = 'text-adventure-save-index';
-const SAVE_VERSION = '1.1'; // Bump version for new data structure
+const SAVE_VERSION = '1.2'; // Bump version for new model property
+
+const DEFAULT_MODEL = 'googleai/gemini-2.5-flash';
 
 const DEFAULT_SYSTEM_PROMPTS: SystemPrompts = {
     mainPrompt: "This is a text adventure game. Continue the story based on the last player action. Be descriptive and engaging. End your response by asking the player what they want to do next.",
@@ -53,6 +55,7 @@ const createNewGameSave = (name: string): GameSave => {
     version: SAVE_VERSION,
     name,
     lastSaved: new Date().toISOString(),
+    model: DEFAULT_MODEL,
     playerSettings: DEFAULT_PLAYER_SETTINGS,
     backgroundSettings: DEFAULT_BACKGROUND_SETTINGS,
     gameOpeningSettings: DEFAULT_GAME_OPENING_SETTINGS,
@@ -90,12 +93,13 @@ const getSaveFromStorage = (name: string): GameSave | null => {
     if (!saveJson) return null;
     const save = JSON.parse(saveJson);
     
-    // Migration for old save format
+    // Migration for old save formats
     if (!save.storyThreads) {
       const newThreadId = `thread-${Date.now()}`;
       const migratedSave: GameSave = {
         ...createNewGameSave(save.name),
         ...save,
+        model: save.model || DEFAULT_MODEL, // Add model migration
         storyThreads: [{
           id: newThreadId,
           title: 'Imported Story',
@@ -107,6 +111,9 @@ const getSaveFromStorage = (name: string): GameSave | null => {
       delete (migratedSave as any).messages; // clean up old property
       setSaveToStorage(migratedSave);
       return migratedSave;
+    }
+     if (!save.model) {
+      save.model = DEFAULT_MODEL;
     }
     
     return save;
@@ -177,6 +184,10 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setActiveGame(createNewGameSave('new'));
   }, []);
 
+  const newGame = useCallback(() => {
+    setActiveGame(createNewGameSave('new'));
+  }, []);
+
   const saveGame = useCallback((name: string) => {
     if (!activeGame) return;
 
@@ -220,10 +231,6 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
   }, [toast]);
 
-  const newGame = useCallback(() => {
-    setActiveGame(createNewGameSave('new'));
-  }, []);
-
   const deleteGame = useCallback((name: string) => {
     deleteSaveFromStorage(name);
     setSaves(prev => prev.filter(s => s.name !== name));
@@ -243,6 +250,14 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Functions to update settings directly on the active game state
+  const setModel = (updater: React.SetStateAction<string>) => {
+    setActiveGame(prev => {
+      if (!prev) return null;
+      const newModel = typeof updater === 'function' ? updater(prev.model) : updater;
+      return {...prev, model: newModel};
+    });
+  };
+
   const setPlayerSettings = (updater: React.SetStateAction<PlayerSettings>) => {
     setActiveGame(prev => {
       if (!prev) return null;
@@ -314,6 +329,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     loadGame,
     deleteGame,
     newGame,
+    model: activeGame?.model || DEFAULT_MODEL,
+    setModel,
     playerSettings: activeGame?.playerSettings || DEFAULT_PLAYER_SETTINGS,
     setPlayerSettings,
     backgroundSettings: activeGame?.backgroundSettings || DEFAULT_BACKGROUND_SETTINGS,

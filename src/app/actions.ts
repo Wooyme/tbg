@@ -19,7 +19,7 @@ function formatMessageHistory(messages: MessageRaw[]): string {
 export async function getAiInitialResponse(
     gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'>
 ): Promise<string> {
-    const { playerSettings, backgroundSettings, gameOpeningSettings } = gameSave;
+    const { playerSettings, backgroundSettings, gameOpeningSettings, model } = gameSave;
 
     let prompt = `Create a text adventure game.`;
     if (gameOpeningSettings.openingCrawl) {
@@ -32,8 +32,13 @@ export async function getAiInitialResponse(
         prompt += ` The story's background is: ${backgroundSettings.description}.`;
     }
 
-    const response = await generateAdventureFromPrompt({ prompt });
-    return response.scenario;
+    const { output } = await ai.generate({
+        model: model,
+        prompt: prompt,
+    });
+    const scenario = output?.text ?? 'The world is silent. No adventure awaits.';
+
+    return scenario;
 }
 
 export async function getAiContinuation(
@@ -57,6 +62,7 @@ Player's latest action: ${userInput}
 What happens next?`;
 
     const { output } = await ai.generate({
+      model: gameSave.model,
       prompt: continuationPrompt,
     });
     return output?.text ?? 'The world seems to have fallen silent. Try again.';

@@ -26,6 +26,9 @@ export interface GameSavesContextType {
   deleteGame: (name: string) => void;
   newGame: () => void;
   
+  model: string;
+  setModel: React.Dispatch<React.SetStateAction<string>>;
+  
   playerSettings: PlayerSettings;
   setPlayerSettings: React.Dispatch<React.SetStateAction<PlayerSettings>>;
   

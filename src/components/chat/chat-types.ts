@@ -50,6 +50,7 @@ export type GameSave = {
   version: string;
   name: string;
   lastSaved: string;
+  model: string;
   playerSettings: PlayerSettings;
   backgroundSettings: BackgroundSettings;
   gameOpeningSettings: GameOpeningSettings;
