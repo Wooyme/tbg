@@ -1,6 +1,6 @@
 import type { MessageRaw, LorebookEntry } from '@/components/chat/chat-types';
 
-function formatMessage(message: MessageRaw): string {
+export function formatMessage(message: MessageRaw): string {
     const author = message.author === 'user' ? 'Player' : 'GameMaster';
     let formattedContent = `${author}: ${message.content}`;
 

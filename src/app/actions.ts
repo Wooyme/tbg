@@ -10,25 +10,15 @@ import { formatMessageHistory, formatLorebook } from '@/lib/chat-utils';
 export async function getAiInitialResponse(
     gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId' | 'lorebook'>
 ): Promise<string> {
-    const { playerSettings, backgroundSettings, gameOpeningSettings, model } = gameSave;
+    const { playerSettings, backgroundSettings, gameOpeningSettings, systemPrompts } = gameSave;
 
-    let prompt = `Create a text adventure game.`;
-    if (gameOpeningSettings.openingCrawl) {
-        prompt += ` The user wants this kind of story: ${gameOpeningSettings.openingCrawl}.`;
-    }
-    if (playerSettings.description) {
-        prompt += ` The player's character is: ${playerSettings.description}.`;
-    }
-    if (backgroundSettings.description) {
-        prompt += ` The story's background is: ${backgroundSettings.description}.`;
-    }
-
-    const { output } = await ai.generate({
-        model: model,
-        prompt: prompt,
+    const { scenario } = await generateAdventureFromPrompt({
+        prompt: gameOpeningSettings.openingCrawl,
+        player: playerSettings.description,
+        background: backgroundSettings.description,
+        systemPrompt: systemPrompts.mainPrompt,
     });
-    const scenario = output?.text ?? 'The world is silent. No adventure awaits.';
-
+    
     return scenario;
 }
 
@@ -36,7 +26,7 @@ export async function getAiContinuation(
   gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'> & { activeStoryThread: StoryThread }
 ): Promise<string> {
   try {
-    const adventureLog = await formatMessageHistory(gameSave.activeStoryThread.messages);
+    const adventureLog = formatMessageHistory(gameSave.activeStoryThread.messages);
     const lorebookContent = formatLorebook(gameSave.lorebook);
 
     const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
