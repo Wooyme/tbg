@@ -6,14 +6,25 @@ import { ai } from '@/ai/genkit';
 import { GameSave } from '@/components/chat/chat-types';
 
 
+function formatMessage(message: MessageRaw): string {
+    const author = message.author === 'user' ? 'Player' : 'GameMaster';
+    let formattedContent = `${author}: ${message.content}`;
+
+    if (message.lore && message.lore.length > 0) {
+        const loreDetails = message.lore
+            .map(entry => `- ${entry.keywords.join(', ')}: ${entry.details}`)
+            .join('\n');
+        // Indent for readability in the prompt
+        const indentedLore = loreDetails.split('\n').map(line => `    ${line}`).join('\n');
+        formattedContent += `\n[The player recalled the following lore]:\n${indentedLore}`;
+    }
+
+    return formattedContent;
+}
+
+
 function formatMessageHistory(messages: MessageRaw[]): string {
-  return messages
-    .map(m => {
-      const author = m.author === 'user' ? 'Player' : 'GameMaster';
-      const content = m.content;
-      return `${author}: ${content}`;
-    })
-    .join('\n');
+  return messages.map(formatMessage).join('\n');
 }
 
 function formatLorebook(lorebook: LorebookEntry[]): string {
@@ -59,6 +70,8 @@ export async function getAiContinuation(
     const adventureLog = formatMessageHistory(gameSave.activeStoryThread.messages);
     const lorebookContent = formatLorebook(gameSave.lorebook);
 
+    // The user's input is the last message in the history log sent to the AI.
+    // We already have it formatted in adventureLog.
     const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
 
 The player's character is: ${gameSave.playerSettings.name}, ${gameSave.playerSettings.description || 'no description'}.
@@ -72,8 +85,6 @@ ${lorebookContent}
 
 Story so far:
 ${adventureLog}
-
-Player's latest action: ${userInput}
 
 What happens next?`;
 

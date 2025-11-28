@@ -196,8 +196,11 @@ export function ChatInterface() {
       setIsLoading(true);
   
       const historyForAction: MessageRaw[] = newMessages.map(m => ({
-          ...m,
+          author: m.author,
           content: m.content,
+          id: m.id,
+          timestamp: m.timestamp,
+          lore: m.lore,
       }));
 
       if (!activeGame) return;
