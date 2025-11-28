@@ -1,40 +1,10 @@
 'use server';
 
 import { generateAdventureFromPrompt } from '@/ai/flows/generate-adventure-from-prompt';
-import type { LorebookEntry, MessageRaw, StoryThread } from '@/components/chat/chat-types';
+import type { StoryThread } from '@/components/chat/chat-types';
 import { ai } from '@/ai/genkit';
 import { GameSave } from '@/components/chat/chat-types';
-
-
-function formatMessage(message: MessageRaw): string {
-    const author = message.author === 'user' ? 'Player' : 'GameMaster';
-    let formattedContent = `${author}: ${message.content}`;
-
-    if (message.lore && message.lore.length > 0) {
-        const loreDetails = message.lore
-            .map(entry => `- ${entry.keywords.join(', ')}: ${entry.details}`)
-            .join('\n');
-        // Indent for readability in the prompt
-        const indentedLore = loreDetails.split('\n').map(line => `    ${line}`).join('\n');
-        formattedContent += `\n[The player recalled the following lore]:\n${indentedLore}`;
-    }
-
-    return formattedContent;
-}
-
-
-export async function formatMessageHistory(messages: MessageRaw[]): Promise<string> {
-  return messages.map(formatMessage).join('\n');
-}
-
-function formatLorebook(lorebook: LorebookEntry[]): string {
-    if (!lorebook || lorebook.length === 0) {
-        return "No lorebook entries yet.";
-    }
-    return lorebook.map(entry => {
-        return `Keywords: ${entry.keywords.join(", ")}\nDetails: ${entry.details}`;
-    }).join("\n\n");
-}
+import { formatMessageHistory, formatLorebook } from '@/lib/chat-utils';
 
 
 export async function getAiInitialResponse(
@@ -66,7 +36,7 @@ export async function getAiContinuation(
   gameSave: Omit<GameSave, 'name' | 'lastSaved' | 'version' | 'storyThreads' | 'activeStoryThreadId'> & { activeStoryThread: StoryThread }
 ): Promise<string> {
   try {
-    const adventureLog = formatMessageHistory(gameSave.activeStoryThread.messages);
+    const adventureLog = await formatMessageHistory(gameSave.activeStoryThread.messages);
     const lorebookContent = formatLorebook(gameSave.lorebook);
 
     const continuationPrompt = `${gameSave.systemPrompts.mainPrompt}
@@ -81,7 +51,7 @@ ${lorebookContent}
 --- END LOREBOOK ---
 
 Story so far:
-${await adventureLog}
+${adventureLog}
 
 What happens next?`;
 
@@ -93,6 +63,6 @@ What happens next?`;
 
   } catch (error) {
     console.error('Error handling user message:', error);
-    return 'An error occurred while processing your request. The virtual world seems unstable. Please try again.';
+    return 'An error occurred while processing your request. The virtual world seems to be unstable. Please try again.';
   }
 }

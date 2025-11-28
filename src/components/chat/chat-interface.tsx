@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import type { MessageDisplay, MessageRaw, LorebookEntry } from './chat-types';
 import { ChatList } from './chat-list';
 import { ChatInput } from './chat-input';
-import { getAiInitialResponse, getAiContinuation, formatMessageHistory } from '@/app/actions';
+import { getAiInitialResponse, getAiContinuation } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
 import { useGameSaves } from '@/hooks/use-game-saves';
 import { summarizeAdventureLog } from '@/ai/flows/summarize-adventure-log';
 import { generateLorebookFromHistory } from '@/ai/flows/generate-lorebook-from-history';
+import { formatMessageHistory } from '@/lib/chat-utils';
 
 const welcomeMessage: Omit<MessageDisplay, 'timestamp' | 'id'> = {
   author: 'ai' as const,
@@ -128,7 +129,7 @@ export function ChatInterface() {
         setIsLoading(true);
         addSystemMessage("Ending current story thread, generating summary, and updating lorebook...");
 
-        const adventureLog = await formatMessageHistory(messages);
+        const adventureLog = formatMessageHistory(messages);
         
         try {
             const [summaryResult, loreResult] = await Promise.all([
