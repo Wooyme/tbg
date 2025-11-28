@@ -8,6 +8,7 @@ import { getAiInitialResponse, getAiContinuation } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
 import { useGameSaves } from '@/hooks/use-game-saves';
 import { summarizeAdventureLog } from '@/ai/flows/summarize-adventure-log';
+import { generateLorebookFromHistory } from '@/ai/flows/generate-lorebook-from-history';
 
 const welcomeMessage: Omit<MessageDisplay, 'timestamp' | 'id'> = {
   author: 'ai' as const,
@@ -28,13 +29,20 @@ const getInitialMessage = (): MessageDisplay => ({
 });
 
 function formatMessageHistory(messages: MessageRaw[]): string {
-  return messages
-    .map(m => {
-      const author = m.author === 'user' ? 'Player' : 'GameMaster';
-      const content = m.content;
-      return `${author}: ${content}`;
-    })
-    .join('\n');
+    return messages
+        .map(msg => {
+            const author = msg.author === 'user' ? 'Player' : 'GameMaster';
+            let formattedContent = `${author}: ${msg.content}`;
+            if (msg.lore && msg.lore.length > 0) {
+                const loreDetails = msg.lore
+                    .map(entry => `- ${entry.keywords.join(', ')}: ${entry.details}`)
+                    .join('\n');
+                const indentedLore = loreDetails.split('\n').map(line => `    ${line}`).join('\n');
+                formattedContent += `\n[The player recalled the following lore]:\n${indentedLore}`;
+            }
+            return formattedContent;
+        })
+        .join('\n');
 }
 
 
@@ -56,6 +64,7 @@ export function ChatInterface() {
     setGameOpeningSettings,
     systemPrompts,
     lorebook,
+    setLorebook,
     updateThreadSummary,
     createNewThread,
   } = useGameSaves();
@@ -134,19 +143,42 @@ export function ChatInterface() {
             return;
         }
         setIsLoading(true);
-        addSystemMessage("Ending current story thread and generating summary...");
+        addSystemMessage("Ending current story thread, generating summary, and updating lorebook...");
 
         const adventureLog = formatMessageHistory(messages);
         
         try {
-            const { title, summary } = await summarizeAdventureLog({ adventureLog });
+            const [summaryResult, loreResult] = await Promise.all([
+                summarizeAdventureLog({ adventureLog }),
+                generateLorebookFromHistory({ adventureLog })
+            ]);
+
+            const { title, summary } = summaryResult;
             updateThreadSummary(activeGame.activeStoryThreadId, title, summary);
-            addSystemMessage(`**Story Ended:** "${title}"\n*${summary}*\n\nStarting a new story branch. Use /start or just begin writing.`);
+            
+            const newLoreEntries = loreResult.lorebook.map(entry => ({
+                ...entry,
+                id: `lore-${Date.now()}-${Math.random()}`
+            }));
+
+            if (newLoreEntries.length > 0) {
+                setLorebook(prevLore => {
+                    const existingKeywords = new Set(prevLore.flatMap(e => e.keywords.map(k => k.toLowerCase())));
+                    const uniqueNewEntries = newLoreEntries.filter(newEntry => 
+                        !newEntry.keywords.some(k => existingKeywords.has(k.toLowerCase()))
+                    );
+                    return [...prevLore, ...uniqueNewEntries];
+                });
+                 addSystemMessage(`**Story Ended:** "${title}"\n*${summary}*\n\nLorebook updated with ${newLoreEntries.length} new entries. Starting a new story branch. Use /start or just begin writing.`);
+            } else {
+                 addSystemMessage(`**Story Ended:** "${title}"\n*${summary}*\n\nNo new entries were added to the lorebook. Starting a new story branch. Use /start or just begin writing.`);
+            }
+
             createNewThread();
             setMessages([]); // Clear messages for the new thread
         } catch (error) {
-            console.error('Error summarizing adventure:', error);
-            addSystemMessage("There was an error summarizing the story. The story was not ended.");
+            console.error('Error ending adventure:', error);
+            addSystemMessage("There was an error ending the story. The story was not ended.");
         } finally {
             setIsLoading(false);
         }
